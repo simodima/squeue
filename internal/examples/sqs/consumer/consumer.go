@@ -31,6 +31,7 @@ func main() {
 	d, err := sqs.New(
 		sqs.WithUrl(os.Getenv("AWS_QUEUE_URL")),
 		sqs.WithRegion(os.Getenv("AWS_REGION")),
+		sqs.AutoTestConnection(),
 	)
 	if err != nil {
 		panic(err)

@@ -20,13 +20,14 @@ type sqsClient interface {
 	DeleteMessage(input *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error)
 	SendMessage(input *sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
 	ReceiveMessage(input *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
+	ListQueues(input *sqs.ListQueuesInput) (*sqs.ListQueuesOutput, error)
 }
 
 type Driver struct {
-	region            string
-	url               string
-	sqsClient         sqsClient
-	clientCredentials *credentials.Credentials
+	region                  string
+	url                     string
+	sqsClient               sqsClient
+	testConnectionOnStartup bool
 
 	visibilityTimeout   *int64
 	maxNumberOfMessages *int64
@@ -34,8 +35,9 @@ type Driver struct {
 
 func New(options ...Option) (*Driver, error) {
 	driver := &Driver{
-		visibilityTimeout:   aws.Int64(90),
-		maxNumberOfMessages: aws.Int64(10),
+		visibilityTimeout:       aws.Int64(90),
+		maxNumberOfMessages:     aws.Int64(10),
+		testConnectionOnStartup: false,
 	}
 
 	for _, o := range options {
@@ -53,6 +55,12 @@ func New(options ...Option) (*Driver, error) {
 	}
 
 	driver.sqsClient = client
+
+	if driver.testConnectionOnStartup {
+		if err := driver.testConnection(); err != nil {
+			return nil, err
+		}
+	}
 
 	return driver, nil
 }
@@ -84,6 +92,11 @@ func createClient(queueUrl string, region string, clientCredentials *credentials
 	}
 
 	return sqs.New(session.Must(session.NewSessionWithOptions(options))), nil
+}
+
+func (d *Driver) testConnection() error {
+	_, err := d.sqsClient.ListQueues(&sqs.ListQueuesInput{})
+	return err
 }
 
 func (d *Driver) Enqueue(queue string, data []byte) error {
