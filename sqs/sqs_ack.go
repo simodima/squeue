@@ -8,7 +8,7 @@ import (
 
 func (c *Driver) Ack(queue, messageID string) error {
 	if c == nil {
-		return errors.New("Invalid sqs driver")
+		return errors.New("invalid sqs driver")
 	}
 
 	_, err := c.sqsClient.DeleteMessage(&sqs.DeleteMessageInput{
