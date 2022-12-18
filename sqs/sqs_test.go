@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	awssqs "github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
@@ -80,6 +81,40 @@ func (suite *SQSTestSuite) TestNewAutoTestConnectionFail() {
 
 	suite.NotNil(err)
 	suite.Nil(sqsDriver)
+}
+
+func (suite *SQSTestSuite) TestEnqueueSuccess() {
+	testQueue := "test-queue"
+	suite.sqsMock.EXPECT().
+		SendMessage(&awssqs.SendMessageInput{
+			MessageBody: aws.String("test message"),
+			QueueUrl:    &testQueue,
+		}).
+		Return(nil, nil)
+
+	sqsDriver, _ := sqs.New(
+		sqs.WithClient(suite.sqsMock),
+	)
+
+	err := sqsDriver.Enqueue(testQueue, []byte("test message"))
+	suite.Nil(err)
+}
+
+func (suite *SQSTestSuite) TestEnqueueFail() {
+	testQueue := "test-queue"
+	suite.sqsMock.EXPECT().
+		SendMessage(&awssqs.SendMessageInput{
+			MessageBody: aws.String("test message"),
+			QueueUrl:    &testQueue,
+		}).
+		Return(nil, errors.New("error calling aws"))
+
+	sqsDriver, _ := sqs.New(
+		sqs.WithClient(suite.sqsMock),
+	)
+
+	err := sqsDriver.Enqueue(testQueue, []byte("test message"))
+	suite.Error(err)
 }
 
 func TestSQSTestSuite(t *testing.T) {
