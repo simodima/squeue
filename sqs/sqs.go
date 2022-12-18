@@ -16,6 +16,7 @@ import (
 	"github.com/toretto460/squeue/driver"
 )
 
+//go:generate mockgen -source=sqs.go -destination=mocks/sqsclient.go
 type sqsClient interface {
 	DeleteMessage(input *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error)
 	SendMessage(input *sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
@@ -44,17 +45,19 @@ func New(options ...Option) (*Driver, error) {
 		o(driver)
 	}
 
-	clientCredentials, err := getCredentials()
-	if err != nil {
-		return nil, err
-	}
+	if driver.sqsClient == nil {
+		clientCredentials, err := getCredentials()
+		if err != nil {
+			return nil, err
+		}
 
-	client, err := createClient(driver.url, driver.region, clientCredentials)
-	if err != nil {
-		return nil, err
-	}
+		client, err := createClient(driver.url, driver.region, clientCredentials)
+		if err != nil {
+			return nil, err
+		}
 
-	driver.sqsClient = client
+		driver.sqsClient = client
+	}
 
 	if driver.testConnectionOnStartup {
 		if err := driver.testConnection(); err != nil {
