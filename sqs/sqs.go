@@ -1,19 +1,15 @@
 package sqs
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/url"
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
-
-	"github.com/toretto460/squeue/driver"
 )
 
 //go:generate mockgen -source=sqs.go -destination=mocks/sqsclient.go
@@ -100,79 +96,4 @@ func createClient(queueUrl string, region string, clientCredentials *credentials
 func (d *Driver) testConnection() error {
 	_, err := d.sqsClient.ListQueues(&sqs.ListQueuesInput{})
 	return err
-}
-
-func (d *Driver) Enqueue(queue string, data []byte) error {
-	if d == nil {
-		return fmt.Errorf("invalid SQS client")
-	}
-
-	_, err := d.sqsClient.SendMessage(&sqs.SendMessageInput{
-		MessageBody: aws.String(string(data)),
-		QueueUrl:    &queue,
-	})
-
-	return err
-}
-
-func (d *Driver) Consume(ctx context.Context, queue string) (chan driver.Message, error) {
-	if d == nil {
-		return nil, fmt.Errorf("invalid SQS client")
-	}
-
-	results := make(chan driver.Message)
-
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(time.Nanosecond):
-			}
-
-			messages, err := d.fetchMessages(queue)
-			if err != nil {
-				results <- driver.Message{
-					Error: err,
-				}
-				continue
-			}
-
-			for _, msg := range messages {
-				results <- driver.Message{
-					Body: []byte(msg[0]),
-					ID:   msg[1],
-				}
-			}
-		}
-	}()
-
-	return results, nil
-}
-
-func (d *Driver) fetchMessages(queue string) ([][2]string, error) {
-	msgResult, err := d.sqsClient.ReceiveMessage(&sqs.ReceiveMessageInput{
-		VisibilityTimeout:   aws.Int64(90), // transform in options
-		MaxNumberOfMessages: aws.Int64(10),
-		MessageAttributeNames: []*string{
-			aws.String(sqs.QueueAttributeNameAll),
-		},
-		AttributeNames: []*string{
-			aws.String(sqs.MessageSystemAttributeNameApproximateReceiveCount),
-			aws.String(sqs.MessageSystemAttributeNameSentTimestamp),
-		},
-		QueueUrl: &queue,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	messages := [][2]string{}
-
-	for _, m := range msgResult.Messages {
-		messages = append(messages, [2]string{*m.Body, *m.ReceiptHandle})
-	}
-
-	return messages, nil
 }
