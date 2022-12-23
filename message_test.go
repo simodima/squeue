@@ -13,7 +13,7 @@ func (e *TestMessage) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	e.Name = raw["name"].(string)
+	e.Name, _ = raw["name"].(string)
 
 	return nil
 }
