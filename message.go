@@ -9,9 +9,10 @@ package squeue
 // func (e *myMessage) UnmarshalJSON(data []byte) error { ... }
 
 // sub := squeue.NewConsumer[*myMessage](d)
-// for m := range sub.Consume() {
-//     do something with m
-// }
+//
+//	for m := range sub.Consume() {
+//	    do something with m
+//	}
 type Message[T any] struct {
 	Content T
 	ID      string

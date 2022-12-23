@@ -8,6 +8,8 @@ import (
 	"github.com/toretto460/squeue/driver"
 )
 
+//go:generate mockgen -source=driver/driver.go -package=squeue_test -destination=driver_test.go
+
 // NewConsumer
 func NewConsumer[T json.Unmarshaler](d driver.Driver) Consumer[T] {
 	return Consumer[T]{d}

@@ -1,32 +1,30 @@
 package sqs
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/url"
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
-
-	"github.com/toretto460/squeue/driver"
 )
 
+//go:generate mockgen -source=sqs.go -destination=mocks/sqsclient.go
 type sqsClient interface {
 	DeleteMessage(input *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error)
 	SendMessage(input *sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
 	ReceiveMessage(input *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
+	ListQueues(input *sqs.ListQueuesInput) (*sqs.ListQueuesOutput, error)
 }
 
 type Driver struct {
-	region            string
-	url               string
-	sqsClient         sqsClient
-	clientCredentials *credentials.Credentials
+	region                  string
+	url                     string
+	sqsClient               sqsClient
+	testConnectionOnStartup bool
 
 	visibilityTimeout   *int64
 	maxNumberOfMessages *int64
@@ -34,25 +32,34 @@ type Driver struct {
 
 func New(options ...Option) (*Driver, error) {
 	driver := &Driver{
-		visibilityTimeout:   aws.Int64(90),
-		maxNumberOfMessages: aws.Int64(10),
+		visibilityTimeout:       aws.Int64(90),
+		maxNumberOfMessages:     aws.Int64(10),
+		testConnectionOnStartup: false,
 	}
 
 	for _, o := range options {
 		o(driver)
 	}
 
-	clientCredentials, err := getCredentials()
-	if err != nil {
-		return nil, err
+	if driver.sqsClient == nil {
+		clientCredentials, err := getCredentials()
+		if err != nil {
+			return nil, err
+		}
+
+		client, err := createClient(driver.url, driver.region, clientCredentials)
+		if err != nil {
+			return nil, err
+		}
+
+		driver.sqsClient = client
 	}
 
-	client, err := createClient(driver.url, driver.region, clientCredentials)
-	if err != nil {
-		return nil, err
+	if driver.testConnectionOnStartup {
+		if err := driver.testConnection(); err != nil {
+			return nil, err
+		}
 	}
-
-	driver.sqsClient = client
 
 	return driver, nil
 }
@@ -86,77 +93,7 @@ func createClient(queueUrl string, region string, clientCredentials *credentials
 	return sqs.New(session.Must(session.NewSessionWithOptions(options))), nil
 }
 
-func (d *Driver) Enqueue(queue string, data []byte) error {
-	if d == nil {
-		return fmt.Errorf("invalid SQS client")
-	}
-
-	_, err := d.sqsClient.SendMessage(&sqs.SendMessageInput{
-		MessageBody: aws.String(string(data)),
-		QueueUrl:    &queue,
-	})
-
+func (d *Driver) testConnection() error {
+	_, err := d.sqsClient.ListQueues(&sqs.ListQueuesInput{})
 	return err
-}
-
-func (d *Driver) Consume(ctx context.Context, queue string) (chan driver.Message, error) {
-	if d == nil {
-		return nil, fmt.Errorf("invalid SQS client")
-	}
-
-	results := make(chan driver.Message)
-
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(time.Nanosecond):
-			}
-
-			messages, err := d.fetchMessages(queue)
-			if err != nil {
-				results <- driver.Message{
-					Error: err,
-				}
-				continue
-			}
-
-			for _, msg := range messages {
-				results <- driver.Message{
-					Body: []byte(msg[0]),
-					ID:   msg[1],
-				}
-			}
-		}
-	}()
-
-	return results, nil
-}
-
-func (d *Driver) fetchMessages(queue string) ([][2]string, error) {
-	msgResult, err := d.sqsClient.ReceiveMessage(&sqs.ReceiveMessageInput{
-		VisibilityTimeout:   aws.Int64(90), // transform in options
-		MaxNumberOfMessages: aws.Int64(10),
-		MessageAttributeNames: []*string{
-			aws.String(sqs.QueueAttributeNameAll),
-		},
-		AttributeNames: []*string{
-			aws.String(sqs.MessageSystemAttributeNameApproximateReceiveCount),
-			aws.String(sqs.MessageSystemAttributeNameSentTimestamp),
-		},
-		QueueUrl: &queue,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	messages := [][2]string{}
-
-	for _, m := range msgResult.Messages {
-		messages = append(messages, [2]string{*m.Body, *m.ReceiptHandle})
-	}
-
-	return messages, nil
 }

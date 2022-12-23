@@ -4,6 +4,18 @@ import "github.com/aws/aws-sdk-go/aws"
 
 type Option func(*Driver)
 
+func WithClient(c sqsClient) Option {
+	return func(d *Driver) {
+		d.sqsClient = c
+	}
+}
+
+func AutoTestConnection() Option {
+	return func(d *Driver) {
+		d.testConnectionOnStartup = true
+	}
+}
+
 func WithUrl(name string) Option {
 	return func(d *Driver) {
 		d.url = name
