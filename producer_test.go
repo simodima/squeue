@@ -29,32 +29,32 @@ func (suite *QueueTestSuite) TearDownTest() {
 }
 
 func (suite *QueueTestSuite) TestNewProducer() {
-	squeue.NewQueue(suite.driver, "test-queue")
+	squeue.NewProducer(suite.driver)
 }
 
 func (suite *QueueTestSuite) TestEnqueueMessage_DriverError() {
 	queue := "test-queue"
-	producer := squeue.NewQueue(suite.driver, queue)
+	producer := squeue.NewProducer(suite.driver)
 
 	suite.driver.
 		EXPECT().
 		Enqueue(queue, []byte(`{"name":"test message"}`)).
 		Return(errors.New("producer error"))
 
-	err := producer.Enqueue(&TestMessage{Name: "test message"})
+	err := producer.Enqueue(queue, &TestMessage{Name: "test message"})
 	suite.Error(err)
 }
 
 func (suite *QueueTestSuite) TestEnqueueMessage() {
 	queue := "test-queue"
-	producer := squeue.NewQueue(suite.driver, queue)
+	producer := squeue.NewProducer(suite.driver)
 	message := &TestMessage{Name: "test message"}
 	suite.driver.
 		EXPECT().
 		Enqueue(queue, []byte(`{"name":"test message"}`)).
 		Return(nil)
 
-	err := producer.Enqueue(message)
+	err := producer.Enqueue(queue, message)
 	suite.Nil(err)
 }
 
