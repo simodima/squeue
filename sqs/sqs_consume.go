@@ -22,6 +22,7 @@ func (d *Driver) Consume(ctx context.Context, queue string) (chan driver.Message
 		for {
 			select {
 			case <-ctx.Done():
+				close(results)
 				return
 			case <-time.After(time.Nanosecond):
 			}
