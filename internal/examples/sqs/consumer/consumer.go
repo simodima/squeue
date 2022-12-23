@@ -4,12 +4,28 @@ import (
 	"context"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/joho/godotenv"
 	"github.com/toretto460/squeue"
 	sqsexample "github.com/toretto460/squeue/internal/examples/sqs"
 	"github.com/toretto460/squeue/sqs"
 )
+
+func onSig(fn func(), signals ...os.Signal) {
+	sigch := make(chan os.Signal, 1)
+	signal.Notify(sigch, signals...)
+
+	s := <-sigch
+
+	for _, sig := range signals {
+		if s.String() == sig.String() {
+			log.Printf("%s intercepted", s)
+			fn()
+		}
+	}
+}
 
 func main() {
 	err := godotenv.Load()
@@ -27,7 +43,8 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	go onSig(cancel, syscall.SIGINT, syscall.SIGTERM)
+
 	d, err := sqs.New(
 		sqs.WithUrl(os.Getenv("AWS_QUEUE_URL")),
 		sqs.WithRegion(os.Getenv("AWS_REGION")),
