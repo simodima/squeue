@@ -14,7 +14,7 @@ func NewConsumer[T json.Unmarshaler](d driver.Driver) Consumer[T] {
 	return Consumer[T]{d}
 }
 
-type Consumer[T any] struct {
+type Consumer[T json.Unmarshaler] struct {
 	driver driver.Driver
 }
 

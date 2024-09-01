@@ -1,5 +1,7 @@
 package squeue
 
+import "encoding/json"
+
 // Message represent a queue message that can be consumed from any queue
 //
 // type myMessage struct {
@@ -13,7 +15,7 @@ package squeue
 //	for m := range sub.Consume() {
 //	    do something with m
 //	}
-type Message[T any] struct {
+type Message[T json.Unmarshaler] struct {
 	Content T
 	ID      string
 	Error   error
