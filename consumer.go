@@ -3,7 +3,6 @@ package squeue
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/toretto460/squeue/driver"
 )
@@ -22,7 +21,7 @@ type Consumer[T any] struct {
 func (p *Consumer[T]) Consume(ctx context.Context, topic string) (chan Message[T], error) {
 	messages, err := p.driver.Consume(ctx, topic)
 	if err != nil {
-		return nil, fmt.Errorf("error consuming messages: %w", err)
+		return nil, wrapErr(err, ErrDriver, nil)
 	}
 
 	outMsg := make(chan Message[T])
@@ -31,7 +30,7 @@ func (p *Consumer[T]) Consume(ctx context.Context, topic string) (chan Message[T
 		for message := range messages {
 			if message.Error != nil {
 				outMsg <- Message[T]{
-					Error: message.Error,
+					Error: wrapErr(message.Error, ErrDriver, nil),
 				}
 				continue
 			}
@@ -40,9 +39,8 @@ func (p *Consumer[T]) Consume(ctx context.Context, topic string) (chan Message[T
 			err := json.Unmarshal(message.Body, &content)
 			if err != nil {
 				outMsg <- Message[T]{
-					Content: content,
-					ID:      message.ID,
-					Error:   err,
+					ID:    message.ID,
+					Error: wrapErr(err, ErrUnmarshal, message.Body),
 				}
 				continue
 			}
