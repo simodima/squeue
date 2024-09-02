@@ -11,7 +11,58 @@ import (
 	"github.com/toretto460/squeue/driver"
 )
 
-func (d *Driver) Consume(ctx context.Context, queue string) (chan driver.Message, error) {
+func safeDoOnReceiveMessage(do func(*sqs.ReceiveMessageInput)) func(m any) {
+	return func(m any) {
+		if SQSMessage, ok := m.(*sqs.ReceiveMessageInput); ok {
+			do(SQSMessage)
+		}
+	}
+}
+
+func WithConsumeWaitTimeSeconds(wait int64) func(m any) {
+	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
+		message.WaitTimeSeconds = aws.Int64(wait)
+	})
+}
+
+func WithConsumeVisibilityTimeout(timeout int64) func(m any) {
+	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
+		message.VisibilityTimeout = aws.Int64(timeout)
+	})
+}
+
+func WithConsumeRequestAttemptId(id string) func(m any) {
+	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
+		message.ReceiveRequestAttemptId = aws.String(id)
+	})
+}
+
+func WithConsumeMessageSystemAttributeNames(attributes []string) func(m any) {
+	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
+		if len(attributes) == 0 {
+			message.MessageSystemAttributeNames = aws.StringSlice(
+				[]string{sqs.MessageSystemAttributeNameAll},
+			)
+		} else {
+			message.MessageSystemAttributeNames = aws.StringSlice(attributes)
+		}
+
+	})
+}
+
+func WithConsumeMessageAttributeNames(names []string) func(m any) {
+	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
+		message.MessageAttributeNames = aws.StringSlice(names)
+	})
+}
+
+func WithConsumeMaxNumberOfMessages(max int) func(m any) {
+	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
+		message.MaxNumberOfMessages = aws.Int64(int64(max))
+	})
+}
+
+func (d *Driver) Consume(ctx context.Context, queue string, opts ...func(message any)) (chan driver.Message, error) {
 	if d == nil {
 		return nil, fmt.Errorf("invalid SQS client")
 	}
@@ -27,7 +78,7 @@ func (d *Driver) Consume(ctx context.Context, queue string) (chan driver.Message
 			case <-time.After(time.Nanosecond):
 			}
 
-			messages, err := d.fetchMessages(queue)
+			messages, err := d.fetchMessages(queue, opts...)
 			if err != nil {
 				results <- driver.Message{
 					Error: err,
@@ -47,19 +98,25 @@ func (d *Driver) Consume(ctx context.Context, queue string) (chan driver.Message
 	return results, nil
 }
 
-func (d *Driver) fetchMessages(queue string) ([][2]string, error) {
-	msgResult, err := d.sqsClient.ReceiveMessage(&sqs.ReceiveMessageInput{
-		VisibilityTimeout:   aws.Int64(90), // transform in options
+func (d *Driver) fetchMessages(queue string, opts ...func(message any)) ([][2]string, error) {
+	req := &sqs.ReceiveMessageInput{
+		VisibilityTimeout:   aws.Int64(90),
 		MaxNumberOfMessages: aws.Int64(10),
 		MessageAttributeNames: []*string{
 			aws.String(sqs.QueueAttributeNameAll),
 		},
-		AttributeNames: []*string{
-			aws.String(sqs.MessageSystemAttributeNameApproximateReceiveCount),
-			aws.String(sqs.MessageSystemAttributeNameSentTimestamp),
-		},
+		// AttributeNames: []*string{
+		// 	aws.String(sqs.MessageSystemAttributeNameApproximateReceiveCount),
+		// 	aws.String(sqs.MessageSystemAttributeNameSentTimestamp),
+		// },
 		QueueUrl: &queue,
-	})
+	}
+
+	for _, o := range opts {
+		o(req)
+	}
+
+	msgResult, err := d.sqsClient.ReceiveMessage(req)
 
 	if err != nil {
 		return nil, err

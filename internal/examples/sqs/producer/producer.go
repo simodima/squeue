@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -39,8 +41,10 @@ func main() {
 	}
 
 	pub := squeue.NewProducer(d)
+	tick := time.Tick(time.Second * 2)
 
-	_ = pub.Enqueue("test-simone", &sqsexample.MyEvent{Name: "foo"})
-	_ = pub.Enqueue("test-simone", &sqsexample.MyEvent{Name: "bar"})
-	_ = pub.Enqueue("test-simone", &sqsexample.MyEvent{Name: "baz"})
+	for i := 0; ; i++ {
+		<-tick
+		_ = pub.Enqueue("test-simone", &sqsexample.MyEvent{Name: fmt.Sprintf("Message # %d", i)})
+	}
 }

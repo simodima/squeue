@@ -67,13 +67,13 @@ func main() {
 	for m := range messages {
 		go func(message squeue.Message[*sqsexample.MyEvent]) {
 			if message.Error != nil {
-				log.Printf("Received an error %+v", message.Error)
+				log.Printf("Received message with an error %+v", message.Error)
 				return
 			}
 
 			log.Printf("Received %+v", message)
-			if message.Content.Name != "user" {
-				sub.Ack(q, message)
+			if err := sub.Ack(q, message); err != nil {
+				log.Print("Failed sending ack ", err)
 			}
 		}(m)
 	}
