@@ -37,17 +37,17 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	d := driver.NewMemoryDriver(time.Microsecond)
 
-	queue := squeue.NewQueue(d, "my_topic.test")
+	queue := squeue.NewProducer(d)
 	consumer := squeue.NewConsumer[*myMessage](d)
 
-	events, err := consumer.Consume(ctx, "my_topic.test")
+	events, err := consumer.Consume(ctx, "queue.test")
 	if err != nil {
 		panic(err)
 	}
 
-	queue.Enqueue(&myMessage{"foo"})
-	queue.Enqueue(&myMessage{"bar"})
-	queue.Enqueue(&myMessage{"baz"})
+	_ = queue.Enqueue("queue.test", &myMessage{"foo"})
+	_ = queue.Enqueue("queue.test", &myMessage{"bar"})
+	_ = queue.Enqueue("queue.test", &myMessage{"baz"})
 
 	log.Print("Waiting for consuming")
 	time.Sleep(time.Second)

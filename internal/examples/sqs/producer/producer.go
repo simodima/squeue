@@ -38,9 +38,9 @@ func main() {
 		panic(err)
 	}
 
-	pub := squeue.NewQueue(d, "test-simone")
+	pub := squeue.NewProducer(d)
 
-	pub.Enqueue(&sqsexample.MyEvent{Name: "foo"})
-	pub.Enqueue(&sqsexample.MyEvent{Name: "bar"})
-	pub.Enqueue(&sqsexample.MyEvent{Name: "baz"})
+	_ = pub.Enqueue("test-simone", &sqsexample.MyEvent{Name: "foo"})
+	_ = pub.Enqueue("test-simone", &sqsexample.MyEvent{Name: "bar"})
+	_ = pub.Enqueue("test-simone", &sqsexample.MyEvent{Name: "baz"})
 }

@@ -107,7 +107,13 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_OneMessageUnmarshallError() 
 	m := <-messages
 
 	suite.Error(m.Error)
-	suite.Contains(m.Error.Error(), "invalid character")
+
+	var driverErr *squeue.Err
+	if errors.As(m.Error, &driverErr) {
+		suite.Equal(squeue.ErrUnmarshal, driverErr.Code())
+	} else {
+		suite.Fail("unmarshal error was expected")
+	}
 }
 
 func (suite *ConsumerTestSuite) TestConsumeMessages_RealWorldScenarioWithErrors() {
@@ -124,7 +130,7 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_RealWorldScenarioWithErrors(
 		}
 
 		dMessages <- driver.Message{
-			Error: errors.New("driver error"),
+			Error: errors.New("wire error"),
 		}
 
 		dMessages <- driver.Message{
@@ -154,6 +160,12 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_RealWorldScenarioWithErrors(
 	m = <-messages
 	suite.Error(m.Error)
 	suite.Contains(m.Error.Error(), "driver error")
+	var driverErr *squeue.Err
+	if errors.As(m.Error, &driverErr) {
+		suite.Equal(squeue.ErrDriver, driverErr.Code())
+	} else {
+		suite.Fail("driver error was expected")
+	}
 
 	m = <-messages
 	suite.Nil(m.Error)

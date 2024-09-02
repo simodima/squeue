@@ -9,7 +9,6 @@ import (
 )
 
 func NewMemoryDriver(tick time.Duration) *MemoryDriver {
-	rand.Seed(time.Now().Unix())
 	return &MemoryDriver{
 		l:        &sync.Mutex{},
 		messages: make(map[string][]Message),
