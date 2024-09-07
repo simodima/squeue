@@ -1,6 +1,7 @@
 package sqs_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"testing"
@@ -84,11 +85,25 @@ func (suite *SQSTestSuite) TestNewAutoTestConnectionFail() {
 }
 
 func (suite *SQSTestSuite) TestEnqueueSuccess() {
-	testQueue := "test-queue"
 	suite.sqsMock.EXPECT().
 		SendMessage(&awssqs.SendMessageInput{
-			MessageBody: aws.String("test message"),
-			QueueUrl:    &testQueue,
+			MessageBody:            aws.String("test message"),
+			QueueUrl:               aws.String("test-queue"),
+			DelaySeconds:           aws.Int64(1),
+			MessageDeduplicationId: aws.String("dedup-id-1"),
+			MessageGroupId:         aws.String("group-id-1"),
+			MessageAttributes: map[string]*awssqs.MessageAttributeValue{
+				"tenant": {
+					DataType:    aws.String("String"),
+					StringValue: aws.String("tenant-1"),
+				},
+			},
+			MessageSystemAttributes: map[string]*awssqs.MessageSystemAttributeValue{
+				"request-id": {
+					DataType:    aws.String("String"),
+					StringValue: aws.String("12345"),
+				},
+			},
 		}).
 		Return(nil, nil)
 
@@ -96,16 +111,87 @@ func (suite *SQSTestSuite) TestEnqueueSuccess() {
 		sqs.WithClient(suite.sqsMock),
 	)
 
-	err := sqsDriver.Enqueue(testQueue, []byte("test message"))
+	err := sqsDriver.Enqueue(
+		"test-queue",
+		[]byte("test message"),
+		sqs.WithEnqueueDelaySeconds(1),
+		sqs.WithEnqueueMessageGroupId("group-id-1"),
+		sqs.WithEnqueueMessageDeduplicationId("dedup-id-1"),
+		sqs.WithEnqueueMessageAttributes(map[string]*awssqs.MessageAttributeValue{
+			"tenant": {
+				DataType:    aws.String("String"),
+				StringValue: aws.String("tenant-1"),
+			},
+		}),
+		sqs.WithEnqueueMessageSystemAttributes(map[string]*awssqs.MessageSystemAttributeValue{
+			"request-id": {
+				DataType:    aws.String("String"),
+				StringValue: aws.String("12345"),
+			},
+		}),
+	)
+
 	suite.Nil(err)
+}
+
+func (suite *SQSTestSuite) TestConsumeSuccess() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	suite.sqsMock.EXPECT().
+		ReceiveMessage(&awssqs.ReceiveMessageInput{
+			MaxNumberOfMessages:         aws.Int64(9),
+			MessageAttributeNames:       []*string{aws.String("All")},
+			MessageSystemAttributeNames: []*string{aws.String("All")},
+			QueueUrl:                    aws.String("test-queue"),
+			ReceiveRequestAttemptId:     aws.String("attempt-1"),
+			VisibilityTimeout:           aws.Int64(2),
+			WaitTimeSeconds:             aws.Int64(1),
+		}).
+		Return(&awssqs.ReceiveMessageOutput{
+			Messages: []*awssqs.Message{
+				{Body: aws.String(`{"id": 1}`), ReceiptHandle: aws.String("1")},
+				{Body: aws.String(`{"id": 2}`), ReceiptHandle: aws.String("2")},
+				{Body: aws.String(`{"id": 3}`), ReceiptHandle: aws.String("3")},
+			},
+		}, nil).AnyTimes()
+
+	sqsDriver, _ := sqs.New(
+		sqs.WithClient(suite.sqsMock),
+	)
+
+	messages, err := sqsDriver.Consume(
+		ctx,
+		"test-queue",
+		sqs.WithConsumeWaitTimeSeconds(1),
+		sqs.WithConsumeVisibilityTimeout(2),
+		sqs.WithConsumeRequestAttemptId("attempt-1"),
+		sqs.WithConsumeMessageSystemAttributeNames([]string{"All"}),
+		sqs.WithConsumeMessageAttributeNames([]string{"All"}),
+		sqs.WithConsumeMaxNumberOfMessages(9),
+	)
+
+	suite.Nil(err)
+
+	msg1 := <-messages
+	msg2 := <-messages
+	msg3 := <-messages
+
+	suite.Equal("1", msg1.ID)
+	suite.Equal("2", msg2.ID)
+	suite.Equal("3", msg3.ID)
+
 }
 
 func (suite *SQSTestSuite) TestEnqueueFail() {
 	testQueue := "test-queue"
+	one := int64(1)
+
 	suite.sqsMock.EXPECT().
 		SendMessage(&awssqs.SendMessageInput{
-			MessageBody: aws.String("test message"),
-			QueueUrl:    &testQueue,
+			DelaySeconds: &one,
+			MessageBody:  aws.String("test message"),
+			QueueUrl:     &testQueue,
 		}).
 		Return(nil, errors.New("error calling aws"))
 
@@ -113,7 +199,7 @@ func (suite *SQSTestSuite) TestEnqueueFail() {
 		sqs.WithClient(suite.sqsMock),
 	)
 
-	err := sqsDriver.Enqueue(testQueue, []byte("test message"))
+	err := sqsDriver.Enqueue(testQueue, []byte("test message"), sqs.WithEnqueueDelaySeconds(1))
 	suite.Error(err)
 }
 

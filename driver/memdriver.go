@@ -26,7 +26,7 @@ func (d *MemoryDriver) Ack(queue, messageID string) error {
 	return nil
 }
 
-func (d *MemoryDriver) Enqueue(queue string, evt []byte) error {
+func (d *MemoryDriver) Enqueue(queue string, evt []byte, opts ...func(message any)) error {
 	d.l.Lock()
 	defer d.l.Unlock()
 
@@ -44,7 +44,7 @@ func (d *MemoryDriver) Enqueue(queue string, evt []byte) error {
 	return nil
 }
 
-func (d *MemoryDriver) Consume(ctx context.Context, topic string) (chan Message, error) {
+func (d *MemoryDriver) Consume(ctx context.Context, topic string, opts ...func(message any)) (chan Message, error) {
 	results := make(chan Message)
 	go func() {
 		for {

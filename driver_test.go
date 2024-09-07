@@ -50,30 +50,40 @@ func (mr *MockDriverMockRecorder) Ack(queue, messageID interface{}) *gomock.Call
 }
 
 // Consume mocks base method.
-func (m *MockDriver) Consume(ctx context.Context, topic string) (chan driver.Message, error) {
+func (m *MockDriver) Consume(ctx context.Context, topic string, opts ...func(any)) (chan driver.Message, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Consume", ctx, topic)
+	varargs := []interface{}{ctx, topic}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Consume", varargs...)
 	ret0, _ := ret[0].(chan driver.Message)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Consume indicates an expected call of Consume.
-func (mr *MockDriverMockRecorder) Consume(ctx, topic interface{}) *gomock.Call {
+func (mr *MockDriverMockRecorder) Consume(ctx, topic interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Consume", reflect.TypeOf((*MockDriver)(nil).Consume), ctx, topic)
+	varargs := append([]interface{}{ctx, topic}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Consume", reflect.TypeOf((*MockDriver)(nil).Consume), varargs...)
 }
 
 // Enqueue mocks base method.
-func (m *MockDriver) Enqueue(queue string, data []byte) error {
+func (m *MockDriver) Enqueue(queue string, data []byte, opts ...func(any)) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Enqueue", queue, data)
+	varargs := []interface{}{queue, data}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Enqueue", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Enqueue indicates an expected call of Enqueue.
-func (mr *MockDriverMockRecorder) Enqueue(queue, data interface{}) *gomock.Call {
+func (mr *MockDriverMockRecorder) Enqueue(queue, data interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Enqueue", reflect.TypeOf((*MockDriver)(nil).Enqueue), queue, data)
+	varargs := append([]interface{}{queue, data}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Enqueue", reflect.TypeOf((*MockDriver)(nil).Enqueue), varargs...)
 }
