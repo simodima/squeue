@@ -18,6 +18,7 @@ type Consumer[T json.Unmarshaler] struct {
 	driver driver.Driver
 }
 
+// TODO: document Consume
 func (p *Consumer[T]) Consume(ctx context.Context, topic string, opts ...func(message any)) (chan Message[T], error) {
 	messages, err := p.driver.Consume(ctx, topic, opts...)
 	if err != nil {
@@ -56,6 +57,7 @@ func (p *Consumer[T]) Consume(ctx context.Context, topic string, opts ...func(me
 	return outMsg, nil
 }
 
+// TODO: document Ack
 func (p *Consumer[T]) Ack(queue string, m Message[T]) error {
 	return p.driver.Ack(queue, m.ID)
 }
