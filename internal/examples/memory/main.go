@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/toretto460/squeue"
@@ -32,9 +35,24 @@ func (e *myMessage) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func cancelOnSignal(fn func(), signals ...os.Signal) {
+	sigch := make(chan os.Signal, 1)
+	signal.Notify(sigch, signals...)
+
+	s := <-sigch
+
+	for _, sig := range signals {
+		if s.String() == sig.String() {
+			log.Printf("Signal %s intercepted", s)
+			fn()
+		}
+	}
+}
+
 func main() {
-	wait := make(chan struct{})
 	ctx, cancel := context.WithCancel(context.Background())
+	go cancelOnSignal(cancel, syscall.SIGINT, syscall.SIGTERM)
+
 	d := driver.NewMemoryDriver(time.Microsecond)
 
 	queue := squeue.NewProducer(d)
@@ -49,24 +67,12 @@ func main() {
 	_ = queue.Enqueue("queue.test", &myMessage{"bar"})
 	_ = queue.Enqueue("queue.test", &myMessage{"baz"})
 
-	log.Print("Waiting for consuming")
-	time.Sleep(time.Second)
-
+	// Consumer gorouting
 	go func() {
-		defer func() {
-			log.Print("Consumed all messages")
-		}()
 		for evt := range events {
-			log.Print("MSG CONTENT RECEIVED\t", evt.Content)
+			log.Print("Received ", evt.Content)
 		}
-		log.Print("closed chan")
-		wait <- struct{}{}
 	}()
 
-	// let the consumer goroutine consume the messages
-	time.Sleep(time.Second)
-	log.Print("cancelling...")
-	cancel()
-	time.Sleep(time.Second * 10)
-	<-wait
+	<-ctx.Done()
 }

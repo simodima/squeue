@@ -13,7 +13,7 @@ import (
 	"github.com/toretto460/squeue/sqs"
 )
 
-func onSig(fn func(), signals ...os.Signal) {
+func cancelOnSignal(fn func(), signals ...os.Signal) {
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, signals...)
 
@@ -21,7 +21,7 @@ func onSig(fn func(), signals ...os.Signal) {
 
 	for _, sig := range signals {
 		if s.String() == sig.String() {
-			log.Printf("%s intercepted", s)
+			log.Printf("Signal %s intercepted", s)
 			fn()
 		}
 	}
@@ -43,7 +43,7 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go onSig(cancel, syscall.SIGINT, syscall.SIGTERM)
+	go cancelOnSignal(cancel, syscall.SIGINT, syscall.SIGTERM)
 
 	d, err := sqs.New(
 		sqs.WithUrl(os.Getenv("AWS_QUEUE_URL")),
@@ -71,7 +71,7 @@ func main() {
 				return
 			}
 
-			log.Printf("Received %+v", message)
+			log.Printf("Received %s", message.Content.Name)
 			if err := sub.Ack(q, message); err != nil {
 				log.Print("Failed sending ack ", err)
 			}

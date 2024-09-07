@@ -45,6 +45,6 @@ func main() {
 
 	for i := 0; ; i++ {
 		<-tick
-		_ = pub.Enqueue("test-simone", &sqsexample.MyEvent{Name: fmt.Sprintf("Message # %d", i)})
+		_ = pub.Enqueue("test-simone", &sqsexample.MyEvent{Name: fmt.Sprintf("Message #%d", i)})
 	}
 }
