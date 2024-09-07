@@ -3,7 +3,7 @@ module github.com/toretto460/squeue
 go 1.18
 
 require (
-	github.com/aws/aws-sdk-go v1.44.28
+	github.com/aws/aws-sdk-go v1.55.5
 	github.com/golang/mock v1.6.0
 )
 
