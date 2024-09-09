@@ -8,6 +8,8 @@
 
 ---
 
+[![codecov](https://codecov.io/github/simodima/squeue/graph/badge.svg?token=DW7C57P2VW)](https://codecov.io/github/simodima/squeue)
+
 The library provides the following features:
 
 ### Driver based implementation

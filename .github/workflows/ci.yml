@@ -20,4 +20,9 @@ jobs:
       - name: Display Go version
         run: go version
       - name: Test
-        run: go test -v ./...
+        run: go test -v -coverprofile=coverage.txt ./...
+
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
