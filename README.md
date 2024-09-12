@@ -9,6 +9,8 @@
 ---
 
 [![codecov](https://codecov.io/github/simodima/squeue/graph/badge.svg?token=DW7C57P2VW)](https://codecov.io/github/simodima/squeue)
+[![Go Report Card](https://goreportcard.com/badge/github.com/toretto460/squeue)](https://goreportcard.com/report/github.com/toretto460/squeue)
+[![Go Reference](https://pkg.go.dev/badge/github.com/simodima/squeue.svg)](https://pkg.go.dev/github.com/simodima/squeue)
 
 The library provides the following features:
 
