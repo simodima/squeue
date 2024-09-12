@@ -44,7 +44,7 @@ func (d *MemoryDriver) Enqueue(queue string, evt []byte, opts ...func(message an
 	return nil
 }
 
-func (d *MemoryDriver) Consume(ctx context.Context, topic string, opts ...func(message any)) (chan Message, error) {
+func (d *MemoryDriver) Consume(ctx context.Context, queue string, opts ...func(message any)) (chan Message, error) {
 	results := make(chan Message)
 	go func() {
 		for {
@@ -53,7 +53,7 @@ func (d *MemoryDriver) Consume(ctx context.Context, topic string, opts ...func(m
 				close(results)
 				return
 			case <-time.After(d.tick):
-				if evt := d.pop(topic); evt != nil {
+				if evt := d.pop(queue); evt != nil {
 					results <- *evt
 				}
 			}
@@ -63,14 +63,14 @@ func (d *MemoryDriver) Consume(ctx context.Context, topic string, opts ...func(m
 	return results, nil
 }
 
-func (d *MemoryDriver) pop(topic string) *Message {
+func (d *MemoryDriver) pop(queue string) *Message {
 	d.l.Lock()
 	defer d.l.Unlock()
 
-	if _, ok := d.messages[topic]; ok {
-		if len(d.messages[topic]) > 0 {
-			evt := d.messages[topic][0]
-			d.messages[topic] = d.messages[topic][1:]
+	if _, ok := d.messages[queue]; ok {
+		if len(d.messages[queue]) > 0 {
+			evt := d.messages[queue][0]
+			d.messages[queue] = d.messages[queue][1:]
 			return &evt
 		}
 	}
