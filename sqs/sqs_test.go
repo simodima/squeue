@@ -40,6 +40,17 @@ func (suite *SQSTestSuite) TearDownTest() {
 	suite.sqsMock = nil
 }
 
+func (suite *SQSTestSuite) TestNewWIthUrlAndRegionOption() {
+	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", "test")
+
+	_, err := sqs.New(
+		sqs.WithUrl("https://sqs.eu-central-1.amazonaws.com"),
+		sqs.WithRegion("us-east-1"),
+	)
+
+	suite.Nil(err)
+}
+
 func (suite *SQSTestSuite) TestNewWithDefaultOptions() {
 	_, err := sqs.New()
 
@@ -107,9 +118,9 @@ func (suite *SQSTestSuite) TestEnqueueSuccess() {
 		}).
 		Return(nil, nil)
 
-	sqsDriver, _ := sqs.New(
+	sqsDriver := must(sqs.New(
 		sqs.WithClient(suite.sqsMock),
-	)
+	))
 
 	err := sqsDriver.Enqueue(
 		"test-queue",
@@ -156,9 +167,9 @@ func (suite *SQSTestSuite) TestConsumeSuccess() {
 			},
 		}, nil).AnyTimes()
 
-	sqsDriver, _ := sqs.New(
+	sqsDriver := must(sqs.New(
 		sqs.WithClient(suite.sqsMock),
-	)
+	))
 
 	messages, err := sqsDriver.Consume(
 		ctx,
@@ -185,13 +196,10 @@ func (suite *SQSTestSuite) TestConsumeSuccess() {
 
 func (suite *SQSTestSuite) TestEnqueueFail() {
 	testQueue := "test-queue"
-	one := int64(1)
-
 	suite.sqsMock.EXPECT().
 		SendMessage(&awssqs.SendMessageInput{
-			DelaySeconds: &one,
-			MessageBody:  aws.String("test message"),
-			QueueUrl:     &testQueue,
+			MessageBody: aws.String("test message"),
+			QueueUrl:    &testQueue,
 		}).
 		Return(nil, errors.New("error calling aws"))
 
@@ -199,7 +207,7 @@ func (suite *SQSTestSuite) TestEnqueueFail() {
 		sqs.WithClient(suite.sqsMock),
 	)
 
-	err := sqsDriver.Enqueue(testQueue, []byte("test message"), sqs.WithEnqueueDelaySeconds(1))
+	err := sqsDriver.Enqueue(testQueue, []byte("test message"))
 	suite.Error(err)
 }
 

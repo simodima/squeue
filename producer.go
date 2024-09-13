@@ -20,7 +20,7 @@ type Producer struct {
 func (q *Producer) Enqueue(queue string, message json.Marshaler, opts ...func(message any)) error {
 	data, err := json.Marshal(message)
 	if err != nil {
-		return err
+		return wrapErr(err, ErrMarshal, nil)
 	}
 
 	return q.driver.Enqueue(queue, data, opts...)

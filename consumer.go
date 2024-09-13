@@ -19,8 +19,8 @@ type Consumer[T json.Unmarshaler] struct {
 }
 
 // TODO: document Consume
-func (p *Consumer[T]) Consume(ctx context.Context, topic string, opts ...func(message any)) (chan Message[T], error) {
-	messages, err := p.driver.Consume(ctx, topic, opts...)
+func (p *Consumer[T]) Consume(ctx context.Context, queue string, opts ...func(message any)) (chan Message[T], error) {
+	messages, err := p.driver.Consume(ctx, queue, opts...)
 	if err != nil {
 		return nil, wrapErr(err, ErrDriver, nil)
 	}

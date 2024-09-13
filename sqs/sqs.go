@@ -25,15 +25,10 @@ type Driver struct {
 	url                     string
 	sqsClient               sqsClient
 	testConnectionOnStartup bool
-
-	visibilityTimeout   *int64
-	maxNumberOfMessages *int64
 }
 
 func New(options ...Option) (*Driver, error) {
 	driver := &Driver{
-		visibilityTimeout:       aws.Int64(90),
-		maxNumberOfMessages:     aws.Int64(10),
 		testConnectionOnStartup: false,
 	}
 
@@ -77,7 +72,7 @@ func getCredentials() (*credentials.Credentials, error) {
 }
 
 func createClient(queueUrl string, region string, clientCredentials *credentials.Credentials) (*sqs.SQS, error) {
-	parsedUrl, err := url.Parse(queueUrl)
+	parsedUrl, err := url.ParseRequestURI(queueUrl)
 	if err != nil {
 		return nil, fmt.Errorf("error creating sqs client: %w", err)
 	}

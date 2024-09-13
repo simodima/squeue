@@ -105,10 +105,6 @@ func (d *Driver) fetchMessages(queue string, opts ...func(message any)) ([][2]st
 		MessageAttributeNames: []*string{
 			aws.String(sqs.QueueAttributeNameAll),
 		},
-		// AttributeNames: []*string{
-		// 	aws.String(sqs.MessageSystemAttributeNameApproximateReceiveCount),
-		// 	aws.String(sqs.MessageSystemAttributeNameSentTimestamp),
-		// },
 		QueueUrl: &queue,
 	}
 

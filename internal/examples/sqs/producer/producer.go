@@ -33,7 +33,6 @@ func main() {
 	d, err := sqs.New(
 		sqs.WithUrl(os.Getenv("AWS_QUEUE_URL")),
 		sqs.WithRegion(os.Getenv("AWS_REGION")),
-		sqs.WithMaxNumberOfMessages(10_000),
 	)
 
 	if err != nil {

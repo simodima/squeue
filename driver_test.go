@@ -50,9 +50,9 @@ func (mr *MockDriverMockRecorder) Ack(queue, messageID interface{}) *gomock.Call
 }
 
 // Consume mocks base method.
-func (m *MockDriver) Consume(ctx context.Context, topic string, opts ...func(any)) (chan driver.Message, error) {
+func (m *MockDriver) Consume(ctx context.Context, queue string, opts ...func(any)) (chan driver.Message, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, topic}
+	varargs := []interface{}{ctx, queue}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
@@ -63,9 +63,9 @@ func (m *MockDriver) Consume(ctx context.Context, topic string, opts ...func(any
 }
 
 // Consume indicates an expected call of Consume.
-func (mr *MockDriverMockRecorder) Consume(ctx, topic interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockDriverMockRecorder) Consume(ctx, queue interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, topic}, opts...)
+	varargs := append([]interface{}{ctx, queue}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Consume", reflect.TypeOf((*MockDriver)(nil).Consume), varargs...)
 }
 
