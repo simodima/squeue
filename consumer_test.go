@@ -8,8 +8,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/toretto460/squeue"
-	"github.com/toretto460/squeue/driver"
+	"github.com/simodima/squeue"
+	"github.com/simodima/squeue/driver"
 )
 
 type ConsumerTestSuite struct {

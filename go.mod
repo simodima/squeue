@@ -1,4 +1,4 @@
-module github.com/toretto460/squeue
+module github.com/simodima/squeue
 
 go 1.18
 

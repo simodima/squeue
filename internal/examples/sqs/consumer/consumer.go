@@ -8,9 +8,9 @@ import (
 	"syscall"
 
 	"github.com/joho/godotenv"
-	"github.com/toretto460/squeue"
-	sqsexample "github.com/toretto460/squeue/internal/examples/sqs"
-	"github.com/toretto460/squeue/sqs"
+	"github.com/simodima/squeue"
+	sqsexample "github.com/simodima/squeue/internal/examples/sqs"
+	"github.com/simodima/squeue/sqs"
 )
 
 func cancelOnSignal(fn func(), signals ...os.Signal) {

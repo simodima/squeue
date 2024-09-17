@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	driver "github.com/toretto460/squeue/driver"
+	driver "github.com/simodima/squeue/driver"
 )
 
 // MockDriver is a mock of Driver interface.

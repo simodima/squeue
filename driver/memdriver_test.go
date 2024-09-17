@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/simodima/squeue/driver"
 	"github.com/stretchr/testify/suite"
-	"github.com/toretto460/squeue/driver"
 )
 
 type MemoryTestSuite struct {

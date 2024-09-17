@@ -7,7 +7,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/toretto460/squeue"
+	"github.com/simodima/squeue"
 )
 
 type wrongMessage struct{}

@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/toretto460/squeue/driver"
+	"github.com/simodima/squeue/driver"
 )
 
 //go:generate mockgen -source=driver/driver.go -package=squeue_test -destination=driver_test.go
 
-// NewConsumer
+// NewConsumer creates a new consumer for the given T type of messages
 func NewConsumer[T json.Unmarshaler](d driver.Driver) Consumer[T] {
 	return Consumer[T]{d}
 }
@@ -18,7 +18,11 @@ type Consumer[T json.Unmarshaler] struct {
 	driver driver.Driver
 }
 
-// TODO: document Consume
+// Consume retrieves messages from the given queue.
+// Any provided options will be sent to the underlying driver.
+// The messages are indefinetely consumed from the queue and
+// sent to the chan Message[T].
+// To stop consuming messages is sufficient to cancel the context.Context
 func (p *Consumer[T]) Consume(ctx context.Context, queue string, opts ...func(message any)) (chan Message[T], error) {
 	messages, err := p.driver.Consume(ctx, queue, opts...)
 	if err != nil {
@@ -57,7 +61,8 @@ func (p *Consumer[T]) Consume(ctx context.Context, queue string, opts ...func(me
 	return outMsg, nil
 }
 
-// TODO: document Ack
+// Ack explicitly acknowldge the message handling.
+// It can be implemented as No Operation for some drivers.
 func (p *Consumer[T]) Ack(queue string, m Message[T]) error {
 	return p.driver.Ack(queue, m.ID)
 }
