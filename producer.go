@@ -16,7 +16,9 @@ type Producer struct {
 	driver driver.Driver
 }
 
-// TODO: document Enqueue
+// Enqueue sends a message to the given queue
+// any provided options will be sent to the
+// underlying driver
 func (q *Producer) Enqueue(queue string, message json.Marshaler, opts ...func(message any)) error {
 	data, err := json.Marshal(message)
 	if err != nil {
