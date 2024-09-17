@@ -3,7 +3,7 @@ package squeue
 import (
 	"encoding/json"
 
-	"github.com/toretto460/squeue/driver"
+	"github.com/simodima/squeue/driver"
 )
 
 func NewProducer(d driver.Driver) Producer {

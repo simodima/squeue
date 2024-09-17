@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/toretto460/squeue/driver"
+	"github.com/simodima/squeue/driver"
 )
 
 //go:generate mockgen -source=driver/driver.go -package=squeue_test -destination=driver_test.go

@@ -11,8 +11,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/toretto460/squeue/sqs"
-	mock_sqs "github.com/toretto460/squeue/sqs/mocks"
+	"github.com/simodima/squeue/sqs"
+	mock_sqs "github.com/simodima/squeue/sqs/mocks"
 )
 
 type SQSTestSuite struct {

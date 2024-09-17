@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 
-	"github.com/toretto460/squeue/driver"
+	"github.com/simodima/squeue/driver"
 )
 
 func safeDoOnReceiveMessage(do func(*sqs.ReceiveMessageInput)) func(m any) {
