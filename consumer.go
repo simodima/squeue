@@ -10,12 +10,16 @@ import (
 //go:generate mockgen -source=driver/driver.go -package=squeue_test -destination=driver_test.go
 
 // NewConsumer creates a new consumer for the given T type of messages
-func NewConsumer[T json.Unmarshaler](d driver.Driver) Consumer[T] {
-	return Consumer[T]{d}
+func NewConsumer[T json.Unmarshaler](d driver.Driver, queue string) Consumer[T] {
+	return Consumer[T]{
+		driver: d,
+		queue:  queue,
+	}
 }
 
 type Consumer[T json.Unmarshaler] struct {
 	driver driver.Driver
+	queue  string
 }
 
 // Consume retrieves messages from the given queue.
@@ -23,8 +27,8 @@ type Consumer[T json.Unmarshaler] struct {
 // The messages are indefinetely consumed from the queue and
 // sent to the chan Message[T].
 // To stop consuming messages is sufficient to cancel the context.Context
-func (p *Consumer[T]) Consume(ctx context.Context, queue string, opts ...func(message any)) (chan Message[T], error) {
-	messages, err := p.driver.Consume(ctx, queue, opts...)
+func (p *Consumer[T]) Consume(ctx context.Context, opts ...func(message any)) (chan Message[T], error) {
+	messages, err := p.driver.Consume(ctx, p.queue, opts...)
 	if err != nil {
 		return nil, wrapErr(err, ErrDriver, nil)
 	}
@@ -63,6 +67,6 @@ func (p *Consumer[T]) Consume(ctx context.Context, queue string, opts ...func(me
 
 // Ack explicitly acknowldge the message handling.
 // It can be implemented as No Operation for some drivers.
-func (p *Consumer[T]) Ack(queue string, m Message[T]) error {
-	return p.driver.Ack(queue, m.ID)
+func (p *Consumer[T]) Ack(m Message[T]) error {
+	return p.driver.Ack(p.queue, m.ID)
 }

@@ -54,10 +54,10 @@ func main() {
 		panic(err)
 	}
 
-	sub := squeue.NewConsumer[*sqsexample.MyEvent](d)
 	q := "test-simone"
+	sub := squeue.NewConsumer[*sqsexample.MyEvent](d, q)
 
-	messages, err := sub.Consume(ctx, q)
+	messages, err := sub.Consume(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +72,7 @@ func main() {
 			}
 
 			log.Printf("Received %s", message.Content.Name)
-			if err := sub.Ack(q, message); err != nil {
+			if err := sub.Ack(message); err != nil {
 				log.Print("Failed sending ack ", err)
 			}
 		}(m)

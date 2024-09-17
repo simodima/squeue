@@ -31,28 +31,28 @@ func (suite *ConsumerTestSuite) TearDownTest() {
 }
 
 func (suite *ConsumerTestSuite) TestNewConsumer() {
-	squeue.NewConsumer[*TestMessage](suite.driver)
+	squeue.NewConsumer[*TestMessage](suite.driver, "test-queue")
 }
 
 func (suite *ConsumerTestSuite) TestConsumeMessages_DriverError() {
-	consumer := squeue.NewConsumer[*TestMessage](suite.driver)
-	ctx := context.Background()
 	queue := "test-queue"
+	consumer := squeue.NewConsumer[*TestMessage](suite.driver, queue)
+	ctx := context.Background()
 
 	suite.driver.
 		EXPECT().
 		Consume(ctx, queue).
 		Return(nil, errors.New("consume error"))
 
-	messages, err := consumer.Consume(ctx, queue)
+	messages, err := consumer.Consume(ctx)
 	suite.Nil(messages)
 	suite.Error(err)
 }
 
 func (suite *ConsumerTestSuite) TestConsumeMessages_OneMessageWithError() {
-	consumer := squeue.NewConsumer[*TestMessage](suite.driver)
-	ctx := context.Background()
 	queue := "test-queue"
+	consumer := squeue.NewConsumer[*TestMessage](suite.driver, queue)
+	ctx := context.Background()
 
 	dMessages := make(chan driver.Message)
 	go func() {
@@ -65,7 +65,7 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_OneMessageWithError() {
 		Consume(ctx, queue).
 		Return(dMessages, nil)
 
-	messages, err := consumer.Consume(ctx, queue)
+	messages, err := consumer.Consume(ctx)
 
 	suite.NotNil(messages)
 	suite.Nil(err)
@@ -80,9 +80,9 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_OneMessageWithError() {
 }
 
 func (suite *ConsumerTestSuite) TestConsumeMessages_OneMessageUnmarshallError() {
-	consumer := squeue.NewConsumer[*TestMessage](suite.driver)
-	ctx := context.Background()
 	queue := "test-queue"
+	consumer := squeue.NewConsumer[*TestMessage](suite.driver, queue)
+	ctx := context.Background()
 
 	dMessages := make(chan driver.Message)
 	go func() {
@@ -99,7 +99,7 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_OneMessageUnmarshallError() 
 		Consume(ctx, queue).
 		Return(dMessages, nil)
 
-	messages, err := consumer.Consume(ctx, queue)
+	messages, err := consumer.Consume(ctx)
 
 	suite.NotNil(messages)
 	suite.Nil(err)
@@ -117,9 +117,9 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_OneMessageUnmarshallError() 
 }
 
 func (suite *ConsumerTestSuite) TestConsumeMessages_RealWorldScenarioWithErrors() {
-	consumer := squeue.NewConsumer[*TestMessage](suite.driver)
-	ctx := context.Background()
 	queue := "test-queue"
+	consumer := squeue.NewConsumer[*TestMessage](suite.driver, queue)
+	ctx := context.Background()
 
 	dMessages := make(chan driver.Message)
 	go func() {
@@ -147,7 +147,7 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_RealWorldScenarioWithErrors(
 		Consume(ctx, queue).
 		Return(dMessages, nil)
 
-	messages, err := consumer.Consume(ctx, queue)
+	messages, err := consumer.Consume(ctx)
 
 	suite.NotNil(messages)
 	suite.Nil(err)

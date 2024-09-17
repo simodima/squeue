@@ -55,19 +55,19 @@ func main() {
 
 	d := driver.NewMemoryDriver(time.Microsecond)
 
-	queue := squeue.NewProducer(d)
-	consumer := squeue.NewConsumer[*myMessage](d)
+	queue := squeue.NewProducer(d, "queue.test")
+	consumer := squeue.NewConsumer[*myMessage](d, "queue.test")
 
-	events, err := consumer.Consume(ctx, "queue.test")
+	events, err := consumer.Consume(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	_ = queue.Enqueue("queue.test", &myMessage{"foo"})
-	_ = queue.Enqueue("queue.test", &myMessage{"bar"})
-	_ = queue.Enqueue("queue.test", &myMessage{"baz"})
+	_ = queue.Enqueue(&myMessage{"foo"})
+	_ = queue.Enqueue(&myMessage{"bar"})
+	_ = queue.Enqueue(&myMessage{"baz"})
 
-	// Consumer gorouting
+	// Consumer goroutine
 	go func() {
 		for evt := range events {
 			log.Print("Received ", evt.Content)
