@@ -173,6 +173,25 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_RealWorldScenarioWithErrors(
 	suite.Contains(m.Content.Name, "test another message")
 }
 
+func (suite *ConsumerTestSuite) TestAckMessage_WithError() {
+	queue := "test-queue"
+	consumer := squeue.NewConsumer[*TestMessage](suite.driver, queue)
+
+	msg := squeue.Message[*TestMessage]{
+		Content: &TestMessage{},
+		ID:      "123",
+	}
+
+	suite.driver.
+		EXPECT().
+		Ack(queue, "123").
+		Return(errors.New("ack error"))
+
+	err := consumer.Ack(msg)
+
+	suite.Error(err)
+}
+
 func TestConsumerTestSuite(t *testing.T) {
 	suite.Run(t, new(ConsumerTestSuite))
 }
