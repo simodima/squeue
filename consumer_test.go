@@ -1,7 +1,6 @@
 package squeue_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -37,14 +36,13 @@ func (suite *ConsumerTestSuite) TestNewConsumer() {
 func (suite *ConsumerTestSuite) TestConsumeMessages_DriverError() {
 	queue := "test-queue"
 	consumer := squeue.NewConsumer[*TestMessage](suite.driver, queue)
-	ctx := context.Background()
 
 	suite.driver.
 		EXPECT().
-		Consume(ctx, queue).
+		Consume(queue).
 		Return(nil, errors.New("consume error"))
 
-	messages, err := consumer.Consume(ctx)
+	messages, err := consumer.Consume()
 	suite.Nil(messages)
 	suite.Error(err)
 }
@@ -52,20 +50,25 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_DriverError() {
 func (suite *ConsumerTestSuite) TestConsumeMessages_OneMessageWithError() {
 	queue := "test-queue"
 	consumer := squeue.NewConsumer[*TestMessage](suite.driver, queue)
-	ctx := context.Background()
-
-	dMessages := make(chan driver.Message)
-	go func() {
-		dMessages <- driver.Message{Error: errors.New("error in message")}
-		close(dMessages)
-	}()
 
 	suite.driver.
 		EXPECT().
-		Consume(ctx, queue).
-		Return(dMessages, nil)
+		Consume(queue).
+		DoAndReturn(func(queue string, _ ...func()) (*driver.ConsumerController, error) {
+			ctrl := driver.NewConsumerController()
+			// Simulate catching the .Stop()
+			go func() { <-ctrl.Done() }()
 
-	messages, err := consumer.Consume(ctx)
+			// Simulate sending one message and Stopping the driver
+			go func() {
+				ctrl.Send(driver.Message{Error: errors.New("error in message")})
+				ctrl.Stop()
+			}()
+
+			return ctrl, nil
+		})
+
+	messages, err := consumer.Consume()
 
 	suite.NotNil(messages)
 	suite.Nil(err)
@@ -82,24 +85,29 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_OneMessageWithError() {
 func (suite *ConsumerTestSuite) TestConsumeMessages_OneMessageUnmarshallError() {
 	queue := "test-queue"
 	consumer := squeue.NewConsumer[*TestMessage](suite.driver, queue)
-	ctx := context.Background()
-
-	dMessages := make(chan driver.Message)
-	go func() {
-		dMessages <- driver.Message{
-			Body:  []byte("invalid json"),
-			ID:    "1111",
-			Error: nil,
-		}
-		close(dMessages)
-	}()
 
 	suite.driver.
 		EXPECT().
-		Consume(ctx, queue).
-		Return(dMessages, nil)
+		Consume(queue).
+		DoAndReturn(func(queue string, _ ...func()) (*driver.ConsumerController, error) {
+			ctrl := driver.NewConsumerController()
+			// Simulate catching the .Stop()
+			go func() { <-ctrl.Done() }()
 
-	messages, err := consumer.Consume(ctx)
+			// Simulate sending one message and Stopping the driver
+			go func() {
+				ctrl.Send(driver.Message{
+					Body:  []byte("invalid json"),
+					ID:    "1111",
+					Error: nil,
+				})
+				ctrl.Stop()
+			}()
+
+			return ctrl, nil
+		})
+
+	messages, err := consumer.Consume()
 
 	suite.NotNil(messages)
 	suite.Nil(err)
@@ -119,35 +127,39 @@ func (suite *ConsumerTestSuite) TestConsumeMessages_OneMessageUnmarshallError() 
 func (suite *ConsumerTestSuite) TestConsumeMessages_RealWorldScenarioWithErrors() {
 	queue := "test-queue"
 	consumer := squeue.NewConsumer[*TestMessage](suite.driver, queue)
-	ctx := context.Background()
-
-	dMessages := make(chan driver.Message)
-	go func() {
-		dMessages <- driver.Message{
-			Body:  []byte(`{"name":"test message"}`),
-			ID:    "1111",
-			Error: nil,
-		}
-
-		dMessages <- driver.Message{
-			Error: errors.New("wire error"),
-		}
-
-		dMessages <- driver.Message{
-			Body:  []byte(`{"name":"test another message"}`),
-			ID:    "1111",
-			Error: nil,
-		}
-
-		close(dMessages)
-	}()
 
 	suite.driver.
 		EXPECT().
-		Consume(ctx, queue).
-		Return(dMessages, nil)
+		Consume(queue).
+		DoAndReturn(func(queue string, _ ...func()) (*driver.ConsumerController, error) {
+			ctrl := driver.NewConsumerController()
+			// Simulate catching the .Stop()
+			go func() { <-ctrl.Done() }()
 
-	messages, err := consumer.Consume(ctx)
+			// Simulate sending three messages and Stopping the driver
+			go func() {
+				ctrl.Send(driver.Message{
+					Body:  []byte(`{"name":"test message"}`),
+					ID:    "1111",
+					Error: nil,
+				})
+
+				ctrl.Send(driver.Message{
+					Error: errors.New("wire error"),
+				})
+
+				ctrl.Send(driver.Message{
+					Body:  []byte(`{"name":"test another message"}`),
+					ID:    "1111",
+					Error: nil,
+				})
+				ctrl.Stop()
+			}()
+
+			return ctrl, nil
+		})
+
+	messages, err := consumer.Consume()
 
 	suite.NotNil(messages)
 	suite.Nil(err)

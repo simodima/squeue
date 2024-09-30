@@ -1,7 +1,6 @@
 package squeue
 
 import (
-	"context"
 	"encoding/json"
 
 	"github.com/simodima/squeue/driver"
@@ -18,25 +17,26 @@ func NewConsumer[T json.Unmarshaler](d driver.Driver, queue string) Consumer[T] 
 }
 
 type Consumer[T json.Unmarshaler] struct {
-	driver driver.Driver
-	queue  string
+	driver     driver.Driver
+	queue      string
+	controller *driver.ConsumerController
 }
 
 // Consume retrieves messages from the given queue.
 // Any provided options will be sent to the underlying driver.
 // The messages are indefinetely consumed from the queue and
 // sent to the chan Message[T].
-// To stop consuming messages is sufficient to cancel the context.Context
-func (p *Consumer[T]) Consume(ctx context.Context, opts ...func(message any)) (chan Message[T], error) {
-	messages, err := p.driver.Consume(ctx, p.queue, opts...)
+func (p *Consumer[T]) Consume(opts ...func(message any)) (chan Message[T], error) {
+	ctrl, err := p.driver.Consume(p.queue, opts...)
 	if err != nil {
 		return nil, wrapErr(err, ErrDriver, nil)
 	}
+	p.controller = ctrl
 
 	outMsg := make(chan Message[T])
 
 	go func() {
-		for message := range messages {
+		for message := range ctrl.Data() {
 			if message.Error != nil {
 				outMsg <- Message[T]{
 					Error: wrapErr(message.Error, ErrDriver, nil),
@@ -63,6 +63,12 @@ func (p *Consumer[T]) Consume(ctx context.Context, opts ...func(message any)) (c
 	}()
 
 	return outMsg, nil
+}
+
+func (p *Consumer[T]) Stop() {
+	if p.controller != nil {
+		p.controller.Stop()
+	}
 }
 
 // Ack explicitly acknowldge the message handling.

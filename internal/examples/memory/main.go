@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"os"
@@ -50,29 +49,26 @@ func cancelOnSignal(fn func(), signals ...os.Signal) {
 }
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	go cancelOnSignal(cancel, syscall.SIGINT, syscall.SIGTERM)
 
 	d := driver.NewMemoryDriver(time.Microsecond)
 
 	queue := squeue.NewProducer(d, "queue.test")
 	consumer := squeue.NewConsumer[*myMessage](d, "queue.test")
 
-	events, err := consumer.Consume(ctx)
+	messages, err := consumer.Consume()
 	if err != nil {
 		panic(err)
 	}
+
+	go cancelOnSignal(func() {
+		consumer.Stop()
+	}, syscall.SIGINT, syscall.SIGTERM)
 
 	_ = queue.Enqueue(&myMessage{"foo"})
 	_ = queue.Enqueue(&myMessage{"bar"})
 	_ = queue.Enqueue(&myMessage{"baz"})
 
-	// Consumer goroutine
-	go func() {
-		for evt := range events {
-			log.Print("Received ", evt.Content)
-		}
-	}()
-
-	<-ctx.Done()
+	for evt := range messages {
+		log.Print("Received ", evt.Content)
+	}
 }

@@ -1,9 +1,9 @@
 package sqs_test
 
 import (
-	"context"
 	"errors"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -146,9 +146,6 @@ func (suite *SQSTestSuite) TestEnqueueSuccess() {
 }
 
 func (suite *SQSTestSuite) TestConsumeSuccess() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	suite.sqsMock.EXPECT().
 		ReceiveMessage(&awssqs.ReceiveMessageInput{
 			MaxNumberOfMessages:         aws.Int64(9),
@@ -162,8 +159,8 @@ func (suite *SQSTestSuite) TestConsumeSuccess() {
 		Return(&awssqs.ReceiveMessageOutput{
 			Messages: []*awssqs.Message{
 				{Body: aws.String(`{"id": 1}`), ReceiptHandle: aws.String("1")},
-				{Body: aws.String(`{"id": 2}`), ReceiptHandle: aws.String("2")},
-				{Body: aws.String(`{"id": 3}`), ReceiptHandle: aws.String("3")},
+				{Body: aws.String(`{"id": 2}`), ReceiptHandle: aws.String("1")},
+				{Body: aws.String(`{"id": 3}`), ReceiptHandle: aws.String("1")},
 			},
 		}, nil).AnyTimes()
 
@@ -171,8 +168,7 @@ func (suite *SQSTestSuite) TestConsumeSuccess() {
 		sqs.WithClient(suite.sqsMock),
 	))
 
-	messages, err := sqsDriver.Consume(
-		ctx,
+	ctrl, err := sqsDriver.Consume(
 		"test-queue",
 		sqs.WithConsumeWaitTimeSeconds(1),
 		sqs.WithConsumeVisibilityTimeout(2),
@@ -184,14 +180,32 @@ func (suite *SQSTestSuite) TestConsumeSuccess() {
 
 	suite.Nil(err)
 
-	msg1 := <-messages
-	msg2 := <-messages
-	msg3 := <-messages
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	stop := make(chan struct{})
+	go func() {
+		// Assert only the first 3 messages and
+		// continue consuming
+		i := 1
+		for msg := range ctrl.Data() {
+			if i < 3 {
+				suite.Equal("1", msg.ID)
+			}
+			if i == 3 {
+				stop <- struct{}{}
+			}
+			i++
+		}
 
-	suite.Equal("1", msg1.ID)
-	suite.Equal("2", msg2.ID)
-	suite.Equal("3", msg3.ID)
+		wg.Done()
+	}()
 
+	go func() {
+		<-stop
+		ctrl.Stop()
+	}()
+
+	wg.Wait()
 }
 
 func (suite *SQSTestSuite) TestEnqueueFail() {

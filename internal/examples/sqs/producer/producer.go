@@ -40,7 +40,7 @@ func main() {
 	}
 
 	pub := squeue.NewProducer(d, "test-simone")
-	tick := time.Tick(time.Second * 2)
+	tick := time.Tick(time.Millisecond)
 
 	for i := 0; ; i++ {
 		<-tick

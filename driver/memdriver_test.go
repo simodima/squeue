@@ -1,7 +1,6 @@
 package driver_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -43,20 +42,18 @@ func (suite *MemoryTestSuite) TestEnqueueDequeueSuccess() {
 	err = d.Enqueue("test", third)
 	suite.Nil(err)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	messages, err := d.Consume(ctx, "test")
+	ctrl, err := d.Consume("test")
 	suite.Nil(err)
 
-	m1 := <-messages
-	m2 := <-messages
-	m3 := <-messages
+	m1 := <-ctrl.Data()
+	m2 := <-ctrl.Data()
+	m3 := <-ctrl.Data()
+
+	ctrl.Stop()
 
 	suite.Equal(first, m1.Body)
 	suite.Equal(second, m2.Body)
 	suite.Equal(third, m3.Body)
-
 }
 
 func TestSQSTestSuite(t *testing.T) {

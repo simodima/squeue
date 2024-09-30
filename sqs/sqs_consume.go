@@ -1,7 +1,6 @@
 package sqs
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -62,40 +61,39 @@ func WithConsumeMaxNumberOfMessages(max int) func(m any) {
 	})
 }
 
-func (d *Driver) Consume(ctx context.Context, queue string, opts ...func(message any)) (chan driver.Message, error) {
+func (d *Driver) Consume(queue string, opts ...func(message any)) (*driver.ConsumerController, error) {
 	if d == nil {
 		return nil, fmt.Errorf("invalid SQS client")
 	}
 
-	results := make(chan driver.Message)
+	ctrl := driver.NewConsumerController()
 
 	go func() {
 		for {
 			select {
-			case <-ctx.Done():
-				close(results)
+			case <-ctrl.Done():
 				return
 			case <-time.After(time.Nanosecond):
 			}
 
 			messages, err := d.fetchMessages(queue, opts...)
 			if err != nil {
-				results <- driver.Message{
+				ctrl.Send(driver.Message{
 					Error: err,
-				}
+				})
 				continue
 			}
 
 			for _, msg := range messages {
-				results <- driver.Message{
+				ctrl.Send(driver.Message{
 					Body: []byte(msg[0]),
 					ID:   msg[1],
-				}
+				})
 			}
 		}
 	}()
 
-	return results, nil
+	return ctrl, nil
 }
 
 func (d *Driver) fetchMessages(queue string, opts ...func(message any)) ([][2]string, error) {

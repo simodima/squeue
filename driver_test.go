@@ -5,7 +5,6 @@
 package squeue_test
 
 import (
-	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -50,22 +49,22 @@ func (mr *MockDriverMockRecorder) Ack(queue, messageID interface{}) *gomock.Call
 }
 
 // Consume mocks base method.
-func (m *MockDriver) Consume(ctx context.Context, queue string, opts ...func(any)) (chan driver.Message, error) {
+func (m *MockDriver) Consume(queue string, opts ...func(any)) (*driver.ConsumerController, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, queue}
+	varargs := []interface{}{queue}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Consume", varargs...)
-	ret0, _ := ret[0].(chan driver.Message)
+	ret0, _ := ret[0].(*driver.ConsumerController)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Consume indicates an expected call of Consume.
-func (mr *MockDriverMockRecorder) Consume(ctx, queue interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockDriverMockRecorder) Consume(queue interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, queue}, opts...)
+	varargs := append([]interface{}{queue}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Consume", reflect.TypeOf((*MockDriver)(nil).Consume), varargs...)
 }
 
