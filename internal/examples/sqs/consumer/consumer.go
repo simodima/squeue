@@ -1,10 +1,10 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/joho/godotenv"
@@ -42,9 +42,6 @@ func main() {
 		`)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go cancelOnSignal(cancel, syscall.SIGINT, syscall.SIGTERM)
-
 	d, err := sqs.New(
 		sqs.WithUrl(os.Getenv("AWS_QUEUE_URL")),
 		sqs.WithRegion(os.Getenv("AWS_REGION")),
@@ -54,27 +51,40 @@ func main() {
 		panic(err)
 	}
 
-	sub := squeue.NewConsumer[*sqsexample.MyEvent](d)
 	q := "test-simone"
+	sub := squeue.NewConsumer[*sqsexample.MyEvent](d, q)
+	go cancelOnSignal(func() {
+		log.Println("Stopping consumer...")
+		sub.Stop()
+		log.Println("Stopped")
+	}, syscall.SIGINT, syscall.SIGTERM)
 
-	messages, err := sub.Consume(ctx, q)
+	messages, err := sub.Consume(
+		sqs.WithConsumeMaxNumberOfMessages(10),
+		sqs.WithConsumeWaitTimeSeconds(20),
+	)
 	if err != nil {
 		panic(err)
 	}
 
 	log.Print("Waiting for consuming")
+	wg := &sync.WaitGroup{}
 
 	for m := range messages {
+		wg.Add(1)
 		go func(message squeue.Message[*sqsexample.MyEvent]) {
+			defer wg.Done()
 			if message.Error != nil {
 				log.Printf("Received message with an error %+v", message.Error)
 				return
 			}
 
 			log.Printf("Received %s", message.Content.Name)
-			if err := sub.Ack(q, message); err != nil {
+			if err := sub.Ack(message); err != nil {
 				log.Print("Failed sending ack ", err)
 			}
 		}(m)
 	}
+
+	wg.Wait()
 }

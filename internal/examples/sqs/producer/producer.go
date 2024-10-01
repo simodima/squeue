@@ -39,11 +39,11 @@ func main() {
 		panic(err)
 	}
 
-	pub := squeue.NewProducer(d)
-	tick := time.Tick(time.Second * 2)
+	pub := squeue.NewProducer(d, "test-simone")
+	tick := time.Tick(time.Millisecond)
 
 	for i := 0; ; i++ {
 		<-tick
-		_ = pub.Enqueue("test-simone", &sqsexample.MyEvent{Name: fmt.Sprintf("Message #%d", i)})
+		_ = pub.Enqueue(&sqsexample.MyEvent{Name: fmt.Sprintf("Message #%d", i)})
 	}
 }

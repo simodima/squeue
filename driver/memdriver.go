@@ -1,7 +1,6 @@
 package driver
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -44,23 +43,23 @@ func (d *MemoryDriver) Enqueue(queue string, evt []byte, opts ...func(message an
 	return nil
 }
 
-func (d *MemoryDriver) Consume(ctx context.Context, queue string, opts ...func(message any)) (chan Message, error) {
-	results := make(chan Message)
+func (d *MemoryDriver) Consume(queue string, opts ...func(message any)) (*ConsumerController, error) {
+	ctrl := NewConsumerController()
+
 	go func() {
 		for {
 			select {
-			case <-ctx.Done():
-				close(results)
+			case <-ctrl.Done():
 				return
 			case <-time.After(d.tick):
 				if evt := d.pop(queue); evt != nil {
-					results <- *evt
+					ctrl.Send(*evt)
 				}
 			}
 		}
 	}()
 
-	return results, nil
+	return ctrl, nil
 }
 
 func (d *MemoryDriver) pop(queue string) *Message {

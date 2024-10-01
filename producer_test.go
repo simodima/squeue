@@ -39,45 +39,45 @@ func (suite *QueueTestSuite) TearDownTest() {
 }
 
 func (suite *QueueTestSuite) TestNewProducer() {
-	squeue.NewProducer(suite.driver)
+	squeue.NewProducer(suite.driver, "test-queue")
 }
 
 func (suite *QueueTestSuite) TestEnqueueMessage_DriverError() {
 	queue := "test-queue"
-	producer := squeue.NewProducer(suite.driver)
+	producer := squeue.NewProducer(suite.driver, queue)
 
 	suite.driver.
 		EXPECT().
 		Enqueue(queue, []byte(`{"name":"test message"}`)).
 		Return(errors.New("producer error"))
 
-	err := producer.Enqueue(queue, &TestMessage{Name: "test message"})
+	err := producer.Enqueue(&TestMessage{Name: "test message"})
 	suite.Error(err)
 }
 
 func (suite *QueueTestSuite) TestEnqueueMessage_MarshalingError() {
 	queue := "test-queue"
-	producer := squeue.NewProducer(suite.driver)
+	producer := squeue.NewProducer(suite.driver, queue)
 
 	suite.driver.
 		EXPECT().
 		Enqueue(queue, nil).
 		Times(0)
 
-	err := producer.Enqueue(queue, &wrongMessage{})
+	err := producer.Enqueue(&wrongMessage{})
 	suite.Error(err)
 }
 
 func (suite *QueueTestSuite) TestEnqueueMessage() {
 	queue := "test-queue"
-	producer := squeue.NewProducer(suite.driver)
+	producer := squeue.NewProducer(suite.driver, queue)
 	message := &TestMessage{Name: "test message"}
 	suite.driver.
 		EXPECT().
 		Enqueue(queue, []byte(`{"name":"test message"}`)).
 		Return(nil)
 
-	err := producer.Enqueue(queue, message)
+	err := producer.Enqueue(message)
 	suite.Nil(err)
 }
 
