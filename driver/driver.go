@@ -33,4 +33,5 @@ type Driver interface {
 	Enqueue(queue string, data []byte, opts ...func(message any)) error
 	Consume(queue string, opts ...func(message any)) (*ConsumerController, error)
 	Ack(queue string, messageID string) error
+	Ping() error
 }

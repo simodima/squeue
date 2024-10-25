@@ -76,3 +76,7 @@ func (d *MemoryDriver) pop(queue string) *Message {
 
 	return nil
 }
+
+func (d *MemoryDriver) Ping() error {
+	return nil
+}

@@ -65,6 +65,11 @@ func (p *Consumer[T]) Consume(opts ...func(message any)) (chan Message[T], error
 	return outMsg, nil
 }
 
+// Ping runs a ping on the underlying driver
+func (p Consumer[T]) Ping() error {
+	return p.driver.Ping()
+}
+
 func (p *Consumer[T]) Stop() {
 	if p.controller != nil {
 		p.controller.Stop()

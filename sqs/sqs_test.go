@@ -58,6 +58,16 @@ func (suite *SQSTestSuite) TestNewWithDefaultOptions() {
 	suite.Contains(err.Error(), "missing")
 }
 
+func (suite *SQSTestSuite) TestNew_InvalidQueueURL() {
+	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", "/a/file")
+	_, err := sqs.New(
+		sqs.WithUrl("-"),
+	)
+
+	suite.Error(err)
+	suite.Contains(err.Error(), "invalid URI")
+}
+
 func (suite *SQSTestSuite) TestNewWithAClient() {
 	sqsDriver, err := sqs.New(sqs.WithClient(suite.sqsMock))
 
@@ -68,12 +78,16 @@ func (suite *SQSTestSuite) TestNewWithAClient() {
 func (suite *SQSTestSuite) TestNewAutoTestConnectionSuccess() {
 	suite.sqsMock.
 		EXPECT().
-		ListQueues(&awssqs.ListQueuesInput{}).
-		Return(nil, nil)
+		GetQueueAttributes(&awssqs.GetQueueAttributesInput{
+			AttributeNames: []*string{aws.String("All")},
+			QueueUrl:       aws.String("aws-sqs-queue-url"),
+		}).
+		Return(&awssqs.GetQueueAttributesOutput{}, nil)
 
 	sqsDriver, err := sqs.New(
 		sqs.WithClient(suite.sqsMock),
 		sqs.AutoTestConnection(),
+		sqs.WithUrl("aws-sqs-queue-url"),
 	)
 
 	suite.Nil(err)
@@ -83,12 +97,16 @@ func (suite *SQSTestSuite) TestNewAutoTestConnectionSuccess() {
 func (suite *SQSTestSuite) TestNewAutoTestConnectionFail() {
 	suite.sqsMock.
 		EXPECT().
-		ListQueues(&awssqs.ListQueuesInput{}).
+		GetQueueAttributes(&awssqs.GetQueueAttributesInput{
+			AttributeNames: []*string{aws.String("All")},
+			QueueUrl:       aws.String("aws-sqs-queue-url"),
+		}).
 		Return(nil, errors.New("error calling aws"))
 
 	sqsDriver, err := sqs.New(
 		sqs.WithClient(suite.sqsMock),
 		sqs.AutoTestConnection(),
+		sqs.WithUrl("aws-sqs-queue-url"),
 	)
 
 	suite.NotNil(err)
