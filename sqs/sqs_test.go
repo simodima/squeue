@@ -68,12 +68,16 @@ func (suite *SQSTestSuite) TestNewWithAClient() {
 func (suite *SQSTestSuite) TestNewAutoTestConnectionSuccess() {
 	suite.sqsMock.
 		EXPECT().
-		ListQueues(&awssqs.ListQueuesInput{}).
-		Return(nil, nil)
+		GetQueueAttributes(&awssqs.GetQueueAttributesInput{
+			AttributeNames: []*string{aws.String("All")},
+			QueueUrl:       aws.String("aws-sqs-queue-url"),
+		}).
+		Return(&awssqs.GetQueueAttributesOutput{}, nil)
 
 	sqsDriver, err := sqs.New(
 		sqs.WithClient(suite.sqsMock),
 		sqs.AutoTestConnection(),
+		sqs.WithUrl("aws-sqs-queue-url"),
 	)
 
 	suite.Nil(err)
@@ -83,12 +87,16 @@ func (suite *SQSTestSuite) TestNewAutoTestConnectionSuccess() {
 func (suite *SQSTestSuite) TestNewAutoTestConnectionFail() {
 	suite.sqsMock.
 		EXPECT().
-		ListQueues(&awssqs.ListQueuesInput{}).
+		GetQueueAttributes(&awssqs.GetQueueAttributesInput{
+			AttributeNames: []*string{aws.String("All")},
+			QueueUrl:       aws.String("aws-sqs-queue-url"),
+		}).
 		Return(nil, errors.New("error calling aws"))
 
 	sqsDriver, err := sqs.New(
 		sqs.WithClient(suite.sqsMock),
 		sqs.AutoTestConnection(),
+		sqs.WithUrl("aws-sqs-queue-url"),
 	)
 
 	suite.NotNil(err)

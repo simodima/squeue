@@ -86,3 +86,17 @@ func (mr *MockDriverMockRecorder) Enqueue(queue, data interface{}, opts ...inter
 	varargs := append([]interface{}{queue, data}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Enqueue", reflect.TypeOf((*MockDriver)(nil).Enqueue), varargs...)
 }
+
+// Ping mocks base method.
+func (m *MockDriver) Ping() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Ping")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Ping indicates an expected call of Ping.
+func (mr *MockDriverMockRecorder) Ping() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockDriver)(nil).Ping))
+}

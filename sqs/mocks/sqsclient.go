@@ -49,19 +49,19 @@ func (mr *MocksqsClientMockRecorder) DeleteMessage(input interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMessage", reflect.TypeOf((*MocksqsClient)(nil).DeleteMessage), input)
 }
 
-// ListQueues mocks base method.
-func (m *MocksqsClient) ListQueues(input *sqs.ListQueuesInput) (*sqs.ListQueuesOutput, error) {
+// GetQueueAttributes mocks base method.
+func (m *MocksqsClient) GetQueueAttributes(input *sqs.GetQueueAttributesInput) (*sqs.GetQueueAttributesOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListQueues", input)
-	ret0, _ := ret[0].(*sqs.ListQueuesOutput)
+	ret := m.ctrl.Call(m, "GetQueueAttributes", input)
+	ret0, _ := ret[0].(*sqs.GetQueueAttributesOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListQueues indicates an expected call of ListQueues.
-func (mr *MocksqsClientMockRecorder) ListQueues(input interface{}) *gomock.Call {
+// GetQueueAttributes indicates an expected call of GetQueueAttributes.
+func (mr *MocksqsClientMockRecorder) GetQueueAttributes(input interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListQueues", reflect.TypeOf((*MocksqsClient)(nil).ListQueues), input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQueueAttributes", reflect.TypeOf((*MocksqsClient)(nil).GetQueueAttributes), input)
 }
 
 // ReceiveMessage mocks base method.

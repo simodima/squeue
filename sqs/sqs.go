@@ -17,7 +17,7 @@ type sqsClient interface {
 	DeleteMessage(input *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error)
 	SendMessage(input *sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
 	ReceiveMessage(input *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
-	ListQueues(input *sqs.ListQueuesInput) (*sqs.ListQueuesOutput, error)
+	GetQueueAttributes(input *sqs.GetQueueAttributesInput) (*sqs.GetQueueAttributesOutput, error)
 }
 
 type Driver struct {
@@ -51,7 +51,7 @@ func New(options ...Option) (*Driver, error) {
 	}
 
 	if driver.testConnectionOnStartup {
-		if err := driver.testConnection(); err != nil {
+		if err := driver.Ping(); err != nil {
 			return nil, err
 		}
 	}
@@ -86,9 +86,4 @@ func createClient(queueUrl string, region string, clientCredentials *credentials
 	}
 
 	return sqs.New(session.Must(session.NewSessionWithOptions(options))), nil
-}
-
-func (d *Driver) testConnection() error {
-	_, err := d.sqsClient.ListQueues(&sqs.ListQueuesInput{})
-	return err
 }

@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/simodima/squeue"
@@ -61,11 +62,23 @@ func main() {
 
 	messages, err := sub.Consume(
 		sqs.WithConsumeMaxNumberOfMessages(10),
-		sqs.WithConsumeWaitTimeSeconds(20),
+		sqs.WithConsumeWaitTimeSeconds(2),
 	)
 	if err != nil {
 		panic(err)
 	}
+
+	// Ping the sqs to check connectivity with AWS
+	go func() {
+		for {
+			<-time.After(time.Second * 10)
+			if err := sub.Ping(); err != nil {
+				log.Println("Ping failed: " + err.Error())
+			} else {
+				log.Println("Ping OK")
+			}
+		}
+	}()
 
 	log.Print("Waiting for consuming")
 	wg := &sync.WaitGroup{}
