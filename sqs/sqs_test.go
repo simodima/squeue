@@ -41,11 +41,10 @@ func (suite *SQSTestSuite) TearDownTest() {
 }
 
 func (suite *SQSTestSuite) TestNewWIthUrlAndRegionOption() {
-	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", "test")
-
 	_, err := sqs.New(
 		sqs.WithUrl("https://sqs.eu-central-1.amazonaws.com"),
 		sqs.WithRegion("us-east-1"),
+		sqs.WithSharedCredentials("test", "default"),
 	)
 
 	suite.Nil(err)
@@ -59,8 +58,8 @@ func (suite *SQSTestSuite) TestNewWithDefaultOptions() {
 }
 
 func (suite *SQSTestSuite) TestNew_InvalidQueueURL() {
-	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", "/a/file")
 	_, err := sqs.New(
+		sqs.WithSharedCredentials("test", "default"),
 		sqs.WithUrl("-"),
 	)
 

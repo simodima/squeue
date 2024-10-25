@@ -46,6 +46,7 @@ func main() {
 	d, err := sqs.New(
 		sqs.WithUrl(os.Getenv("AWS_QUEUE_URL")),
 		sqs.WithRegion(os.Getenv("AWS_REGION")),
+		sqs.WithSharedCredentials(os.Getenv("AWS_SHARED_CREDENTIALS_FILE"), "default"),
 		sqs.AutoTestConnection(),
 	)
 	if err != nil {
@@ -70,13 +71,18 @@ func main() {
 
 	// Ping the sqs to check connectivity with AWS
 	go func() {
-		for {
-			<-time.After(time.Second * 10)
+		ping := func() {
 			if err := sub.Ping(); err != nil {
 				log.Println("Ping failed: " + err.Error())
 			} else {
 				log.Println("Ping OK")
 			}
+		}
+
+		ping()
+		for {
+			<-time.After(time.Second * 10)
+			ping()
 		}
 	}()
 
