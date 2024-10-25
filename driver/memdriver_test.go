@@ -29,6 +29,11 @@ func (suite *MemoryTestSuite) TestAckDONotBreakAnything() {
 	suite.Nil(d.Ack("test", "1"))
 }
 
+func (suite *MemoryTestSuite) TestPingDONotBreakAnything() {
+	d := driver.NewMemoryDriver(time.Millisecond)
+	suite.Nil(d.Ping())
+}
+
 func (suite *MemoryTestSuite) TestEnqueueDequeueSuccess() {
 	d := driver.NewMemoryDriver(time.Millisecond)
 

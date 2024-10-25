@@ -33,6 +33,19 @@ func (suite *ConsumerTestSuite) TestNewConsumer() {
 	squeue.NewConsumer[*TestMessage](suite.driver, "test-queue")
 }
 
+func (suite *ConsumerTestSuite) TestPing() {
+	queue := "test-queue"
+	consumer := squeue.NewConsumer[*TestMessage](suite.driver, queue)
+
+	suite.driver.
+		EXPECT().
+		Ping().
+		Return(errors.New("consume error"))
+
+	err := consumer.Ping()
+	suite.Error(err)
+}
+
 func (suite *ConsumerTestSuite) TestConsumeMessages_DriverError() {
 	queue := "test-queue"
 	consumer := squeue.NewConsumer[*TestMessage](suite.driver, queue)

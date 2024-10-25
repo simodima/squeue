@@ -58,6 +58,16 @@ func (suite *SQSTestSuite) TestNewWithDefaultOptions() {
 	suite.Contains(err.Error(), "missing")
 }
 
+func (suite *SQSTestSuite) TestNew_InvalidQueueURL() {
+	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", "/a/file")
+	_, err := sqs.New(
+		sqs.WithUrl("-"),
+	)
+
+	suite.Error(err)
+	suite.Contains(err.Error(), "invalid URI")
+}
+
 func (suite *SQSTestSuite) TestNewWithAClient() {
 	sqsDriver, err := sqs.New(sqs.WithClient(suite.sqsMock))
 
