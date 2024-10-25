@@ -33,6 +33,7 @@ func main() {
 	d, err := sqs.New(
 		sqs.WithUrl(os.Getenv("AWS_QUEUE_URL")),
 		sqs.WithRegion(os.Getenv("AWS_REGION")),
+		sqs.WithSharedCredentials(os.Getenv("AWS_SHARED_CREDENTIALS_FILE"), "default"),
 	)
 
 	if err != nil {

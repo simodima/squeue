@@ -25,6 +25,18 @@ type Driver struct {
 	url                     string
 	sqsClient               sqsClient
 	testConnectionOnStartup bool
+
+	sharedCredentials *struct {
+		filename string
+		profile  string
+	}
+}
+
+func (d *Driver) SetSharedCredentials(filename, profile string) {
+	d.sharedCredentials = &struct {
+		filename string
+		profile  string
+	}{filename: filename, profile: profile}
 }
 
 func New(options ...Option) (*Driver, error) {
@@ -37,7 +49,7 @@ func New(options ...Option) (*Driver, error) {
 	}
 
 	if driver.sqsClient == nil {
-		clientCredentials, err := getCredentials()
+		clientCredentials, err := driver.getCredentials()
 		if err != nil {
 			return nil, err
 		}
@@ -59,15 +71,20 @@ func New(options ...Option) (*Driver, error) {
 	return driver, nil
 }
 
-func getCredentials() (*credentials.Credentials, error) {
-	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") != "" {
-		return credentials.NewSharedCredentials("", ""), nil
-	} else if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+func (d *Driver) getCredentials() (*credentials.Credentials, error) {
+	if d.sharedCredentials != nil {
+		return credentials.NewSharedCredentials(
+			d.sharedCredentials.filename,
+			d.sharedCredentials.profile,
+		), nil
+	}
+
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
 		return credentials.NewEnvCredentials(), nil
 	}
 
 	return nil, errors.New(
-		"missing AWS_SHARED_CREDENTIALS_FILE and AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY env vars",
+		"missing shared credentials and AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY env vars",
 	)
 }
 
@@ -85,5 +102,10 @@ func createClient(queueUrl string, region string, clientCredentials *credentials
 		},
 	}
 
-	return sqs.New(session.Must(session.NewSessionWithOptions(options))), nil
+	sqsSession, err := session.NewSessionWithOptions(options)
+	if err != nil {
+		return nil, fmt.Errorf("error creating sqs session: %w", err)
+	}
+
+	return sqs.New(sqsSession), nil
 }

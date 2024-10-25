@@ -25,3 +25,9 @@ func WithRegion(region string) Option {
 		d.region = region
 	}
 }
+
+func WithSharedCredentials(filename, profile string) Option {
+	return func(d *Driver) {
+		d.SetSharedCredentials(filename, profile)
+	}
+}
