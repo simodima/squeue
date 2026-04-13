@@ -19,12 +19,11 @@ func init() {
 		log.Fatal("Error loading .env file")
 	}
 
-	if !sqsexample.CheckEnvVariables("AWS_PROFILE", "AWS_SHARED_CREDENTIALS_FILE", "AWS_REGION", "AWS_QUEUE_URL") {
+	if !sqsexample.CheckEnvVariables("AWS_REGION", "AWS_QUEUE_URL") {
 		log.Fatal(`Please set the env variables
-		AWS_PROFILE=user-dev-admin
-		AWS_SHARED_CREDENTIALS_FILE=/Users/{name.lastname}/.aws/credentials
 		AWS_REGION=eu-central-1
 		AWS_QUEUE_URL=https://sqs.eu-central-1.amazonaws.com/...
+		Credentials are resolved via the AWS SDK default chain (env vars, ~/.aws/credentials, Pod Identity, etc.)
 		`)
 	}
 }

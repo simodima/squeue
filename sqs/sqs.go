@@ -1,23 +1,20 @@
 package sqs
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"net/url"
-	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/config"
+	sqsv2 "github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
 //go:generate mockgen -source=sqs.go -destination=mocks/sqsclient.go
 type sqsClient interface {
-	DeleteMessage(input *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error)
-	SendMessage(input *sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
-	ReceiveMessage(input *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
-	GetQueueAttributes(input *sqs.GetQueueAttributesInput) (*sqs.GetQueueAttributesOutput, error)
+	DeleteMessage(ctx context.Context, params *sqsv2.DeleteMessageInput, optFns ...func(*sqsv2.Options)) (*sqsv2.DeleteMessageOutput, error)
+	SendMessage(ctx context.Context, params *sqsv2.SendMessageInput, optFns ...func(*sqsv2.Options)) (*sqsv2.SendMessageOutput, error)
+	ReceiveMessage(ctx context.Context, params *sqsv2.ReceiveMessageInput, optFns ...func(*sqsv2.Options)) (*sqsv2.ReceiveMessageOutput, error)
+	GetQueueAttributes(ctx context.Context, params *sqsv2.GetQueueAttributesInput, optFns ...func(*sqsv2.Options)) (*sqsv2.GetQueueAttributesOutput, error)
 }
 
 type Driver struct {
@@ -37,12 +34,7 @@ func New(options ...Option) (*Driver, error) {
 	}
 
 	if driver.sqsClient == nil {
-		clientCredentials, err := getCredentials()
-		if err != nil {
-			return nil, err
-		}
-
-		client, err := createClient(driver.url, driver.region, clientCredentials)
+		client, err := createClient(driver.url, driver.region)
 		if err != nil {
 			return nil, err
 		}
@@ -59,31 +51,22 @@ func New(options ...Option) (*Driver, error) {
 	return driver, nil
 }
 
-func getCredentials() (*credentials.Credentials, error) {
-	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") != "" {
-		return credentials.NewSharedCredentials("", ""), nil
-	} else if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
-		return credentials.NewEnvCredentials(), nil
-	}
-
-	return nil, errors.New(
-		"missing AWS_SHARED_CREDENTIALS_FILE and AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY env vars",
-	)
-}
-
-func createClient(queueUrl string, region string, clientCredentials *credentials.Credentials) (*sqs.SQS, error) {
+func createClient(queueUrl string, region string) (*sqsv2.Client, error) {
 	parsedUrl, err := url.ParseRequestURI(queueUrl)
 	if err != nil {
 		return nil, fmt.Errorf("error creating sqs client: %w", err)
 	}
 
-	options := session.Options{
-		Config: aws.Config{
-			Endpoint:    aws.String(fmt.Sprintf("%s://%s", parsedUrl.Scheme, parsedUrl.Host)),
-			Region:      aws.String(region),
-			Credentials: clientCredentials,
-		},
+	endpoint := fmt.Sprintf("%s://%s", parsedUrl.Scheme, parsedUrl.Host)
+
+	cfg, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion(region),
+		config.WithBaseEndpoint(endpoint),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error loading AWS config: %w", err)
 	}
 
-	return sqs.New(session.Must(session.NewSessionWithOptions(options))), nil
+	return sqsv2.NewFromConfig(cfg), nil
 }

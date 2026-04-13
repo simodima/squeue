@@ -1,9 +1,10 @@
 package sqs
 
 import (
+	"context"
 	"errors"
 
-	"github.com/aws/aws-sdk-go/service/sqs"
+	sqsv2 "github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
 func (c *Driver) Ack(queue, messageID string) error {
@@ -11,7 +12,7 @@ func (c *Driver) Ack(queue, messageID string) error {
 		return errors.New("invalid sqs driver")
 	}
 
-	_, err := c.sqsClient.DeleteMessage(&sqs.DeleteMessageInput{
+	_, err := c.sqsClient.DeleteMessage(context.Background(), &sqsv2.DeleteMessageInput{
 		QueueUrl:      &queue,
 		ReceiptHandle: &messageID,
 	})
