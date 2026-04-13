@@ -55,7 +55,34 @@ func (suite *SQSTestSuite) TestNewWithDefaultOptions() {
 	_, err := sqs.New()
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "missing")
+	suite.Contains(err.Error(), "error creating sqs client")
+}
+
+// TestNewWithEnvCredentials verifies that static key/secret env vars are accepted.
+func (suite *SQSTestSuite) TestNewWithEnvCredentials() {
+	os.Setenv("AWS_ACCESS_KEY_ID", "AKIAIOSFODNN7EXAMPLE")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
+
+	_, err := sqs.New(
+		sqs.WithUrl("https://sqs.eu-central-1.amazonaws.com"),
+		sqs.WithRegion("us-east-1"),
+	)
+
+	suite.Nil(err)
+}
+
+// TestNewWithNoCredentialEnvVars verifies that the driver can be created when no
+// explicit credential env vars are set, falling through to the AWS SDK default
+// credential chain (which covers Pod Identity, instance profiles, etc.).
+func (suite *SQSTestSuite) TestNewWithNoCredentialEnvVars() {
+	_, err := sqs.New(
+		sqs.WithUrl("https://sqs.eu-central-1.amazonaws.com"),
+		sqs.WithRegion("us-east-1"),
+	)
+
+	// The driver should be created without error — credential resolution is
+	// deferred to the first actual API call, not at construction time.
+	suite.Nil(err)
 }
 
 func (suite *SQSTestSuite) TestNew_InvalidQueueURL() {
