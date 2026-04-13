@@ -5,9 +5,10 @@
 package mock_sqs
 
 import (
+	context "context"
 	reflect "reflect"
 
-	sqs "github.com/aws/aws-sdk-go/service/sqs"
+	sqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,61 +36,81 @@ func (m *MocksqsClient) EXPECT() *MocksqsClientMockRecorder {
 }
 
 // DeleteMessage mocks base method.
-func (m *MocksqsClient) DeleteMessage(input *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error) {
+func (m *MocksqsClient) DeleteMessage(ctx context.Context, params *sqs.DeleteMessageInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteMessage", input)
+	varargs := []interface{}{ctx, params}
+	for _, a := range optFns {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteMessage", varargs...)
 	ret0, _ := ret[0].(*sqs.DeleteMessageOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteMessage indicates an expected call of DeleteMessage.
-func (mr *MocksqsClientMockRecorder) DeleteMessage(input interface{}) *gomock.Call {
+func (mr *MocksqsClientMockRecorder) DeleteMessage(ctx, params interface{}, optFns ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMessage", reflect.TypeOf((*MocksqsClient)(nil).DeleteMessage), input)
+	varargs := append([]interface{}{ctx, params}, optFns...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMessage", reflect.TypeOf((*MocksqsClient)(nil).DeleteMessage), varargs...)
 }
 
 // GetQueueAttributes mocks base method.
-func (m *MocksqsClient) GetQueueAttributes(input *sqs.GetQueueAttributesInput) (*sqs.GetQueueAttributesOutput, error) {
+func (m *MocksqsClient) GetQueueAttributes(ctx context.Context, params *sqs.GetQueueAttributesInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueAttributesOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetQueueAttributes", input)
+	varargs := []interface{}{ctx, params}
+	for _, a := range optFns {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetQueueAttributes", varargs...)
 	ret0, _ := ret[0].(*sqs.GetQueueAttributesOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetQueueAttributes indicates an expected call of GetQueueAttributes.
-func (mr *MocksqsClientMockRecorder) GetQueueAttributes(input interface{}) *gomock.Call {
+func (mr *MocksqsClientMockRecorder) GetQueueAttributes(ctx, params interface{}, optFns ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQueueAttributes", reflect.TypeOf((*MocksqsClient)(nil).GetQueueAttributes), input)
+	varargs := append([]interface{}{ctx, params}, optFns...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQueueAttributes", reflect.TypeOf((*MocksqsClient)(nil).GetQueueAttributes), varargs...)
 }
 
 // ReceiveMessage mocks base method.
-func (m *MocksqsClient) ReceiveMessage(input *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error) {
+func (m *MocksqsClient) ReceiveMessage(ctx context.Context, params *sqs.ReceiveMessageInput, optFns ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReceiveMessage", input)
+	varargs := []interface{}{ctx, params}
+	for _, a := range optFns {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ReceiveMessage", varargs...)
 	ret0, _ := ret[0].(*sqs.ReceiveMessageOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ReceiveMessage indicates an expected call of ReceiveMessage.
-func (mr *MocksqsClientMockRecorder) ReceiveMessage(input interface{}) *gomock.Call {
+func (mr *MocksqsClientMockRecorder) ReceiveMessage(ctx, params interface{}, optFns ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReceiveMessage", reflect.TypeOf((*MocksqsClient)(nil).ReceiveMessage), input)
+	varargs := append([]interface{}{ctx, params}, optFns...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReceiveMessage", reflect.TypeOf((*MocksqsClient)(nil).ReceiveMessage), varargs...)
 }
 
 // SendMessage mocks base method.
-func (m *MocksqsClient) SendMessage(input *sqs.SendMessageInput) (*sqs.SendMessageOutput, error) {
+func (m *MocksqsClient) SendMessage(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMessage", input)
+	varargs := []interface{}{ctx, params}
+	for _, a := range optFns {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SendMessage", varargs...)
 	ret0, _ := ret[0].(*sqs.SendMessageOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SendMessage indicates an expected call of SendMessage.
-func (mr *MocksqsClientMockRecorder) SendMessage(input interface{}) *gomock.Call {
+func (mr *MocksqsClientMockRecorder) SendMessage(ctx, params interface{}, optFns ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MocksqsClient)(nil).SendMessage), input)
+	varargs := append([]interface{}{ctx, params}, optFns...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MocksqsClient)(nil).SendMessage), varargs...)
 }

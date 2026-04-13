@@ -1,63 +1,68 @@
 package sqs
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	sqsv2 "github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 
 	"github.com/simodima/squeue/driver"
 )
 
-func safeDoOnReceiveMessage(do func(*sqs.ReceiveMessageInput)) func(m any) {
+func safeDoOnReceiveMessage(do func(*sqsv2.ReceiveMessageInput)) func(m any) {
 	return func(m any) {
-		if SQSMessage, ok := m.(*sqs.ReceiveMessageInput); ok {
+		if SQSMessage, ok := m.(*sqsv2.ReceiveMessageInput); ok {
 			do(SQSMessage)
 		}
 	}
 }
 
-func WithConsumeWaitTimeSeconds(wait int64) func(m any) {
-	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
-		message.WaitTimeSeconds = aws.Int64(wait)
+func WithConsumeWaitTimeSeconds(wait int32) func(m any) {
+	return safeDoOnReceiveMessage(func(message *sqsv2.ReceiveMessageInput) {
+		message.WaitTimeSeconds = wait
 	})
 }
 
-func WithConsumeVisibilityTimeout(timeout int64) func(m any) {
-	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
-		message.VisibilityTimeout = aws.Int64(timeout)
+func WithConsumeVisibilityTimeout(timeout int32) func(m any) {
+	return safeDoOnReceiveMessage(func(message *sqsv2.ReceiveMessageInput) {
+		message.VisibilityTimeout = timeout
 	})
 }
 
 func WithConsumeRequestAttemptId(id string) func(m any) {
-	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
+	return safeDoOnReceiveMessage(func(message *sqsv2.ReceiveMessageInput) {
 		message.ReceiveRequestAttemptId = aws.String(id)
 	})
 }
 
 func WithConsumeMessageSystemAttributeNames(attributes []string) func(m any) {
-	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
+	return safeDoOnReceiveMessage(func(message *sqsv2.ReceiveMessageInput) {
 		if len(attributes) == 0 {
-			message.MessageSystemAttributeNames = aws.StringSlice(
-				[]string{sqs.MessageSystemAttributeNameAll},
-			)
+			message.MessageSystemAttributeNames = []types.MessageSystemAttributeName{
+				types.MessageSystemAttributeNameAll,
+			}
 		} else {
-			message.MessageSystemAttributeNames = aws.StringSlice(attributes)
+			names := make([]types.MessageSystemAttributeName, len(attributes))
+			for i, a := range attributes {
+				names[i] = types.MessageSystemAttributeName(a)
+			}
+			message.MessageSystemAttributeNames = names
 		}
-
 	})
 }
 
 func WithConsumeMessageAttributeNames(names []string) func(m any) {
-	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
-		message.MessageAttributeNames = aws.StringSlice(names)
+	return safeDoOnReceiveMessage(func(message *sqsv2.ReceiveMessageInput) {
+		message.MessageAttributeNames = names
 	})
 }
 
 func WithConsumeMaxNumberOfMessages(max int) func(m any) {
-	return safeDoOnReceiveMessage(func(message *sqs.ReceiveMessageInput) {
-		message.MaxNumberOfMessages = aws.Int64(int64(max))
+	return safeDoOnReceiveMessage(func(message *sqsv2.ReceiveMessageInput) {
+		message.MaxNumberOfMessages = int32(max)
 	})
 }
 
@@ -97,11 +102,11 @@ func (d *Driver) Consume(queue string, opts ...func(message any)) (*driver.Consu
 }
 
 func (d *Driver) fetchMessages(queue string, opts ...func(message any)) ([][2]string, error) {
-	req := &sqs.ReceiveMessageInput{
-		VisibilityTimeout:   aws.Int64(90),
-		MaxNumberOfMessages: aws.Int64(10),
-		MessageAttributeNames: []*string{
-			aws.String(sqs.QueueAttributeNameAll),
+	req := &sqsv2.ReceiveMessageInput{
+		VisibilityTimeout:   90,
+		MaxNumberOfMessages: 10,
+		MessageAttributeNames: []string{
+			string(types.QueueAttributeNameAll),
 		},
 		QueueUrl: &queue,
 	}
@@ -110,14 +115,12 @@ func (d *Driver) fetchMessages(queue string, opts ...func(message any)) ([][2]st
 		o(req)
 	}
 
-	msgResult, err := d.sqsClient.ReceiveMessage(req)
-
+	msgResult, err := d.sqsClient.ReceiveMessage(context.Background(), req)
 	if err != nil {
 		return nil, err
 	}
 
 	messages := [][2]string{}
-
 	for _, m := range msgResult.Messages {
 		messages = append(messages, [2]string{*m.Body, *m.ReceiptHandle})
 	}

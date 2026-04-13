@@ -6,8 +6,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	awssqs "github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	sqsv2 "github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 
@@ -27,7 +28,7 @@ func (suite *SQSTestSuite) SetupTest() {
 	// cleanup environment
 	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", "")
 	os.Setenv("AWS_ACCESS_KEY_ID", "")
-	os.Setenv("AWS_ACCESS_SECRET_KEY", "")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "")
 
 	suite.ctrl = gomock.NewController(suite.T())
 	suite.sqsMock = mock_sqs.NewMocksqsClient(suite.ctrl)
@@ -41,8 +42,6 @@ func (suite *SQSTestSuite) TearDownTest() {
 }
 
 func (suite *SQSTestSuite) TestNewWIthUrlAndRegionOption() {
-	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", "test")
-
 	_, err := sqs.New(
 		sqs.WithUrl("https://sqs.eu-central-1.amazonaws.com"),
 		sqs.WithRegion("us-east-1"),
@@ -59,7 +58,6 @@ func (suite *SQSTestSuite) TestNewWithDefaultOptions() {
 }
 
 func (suite *SQSTestSuite) TestNew_InvalidQueueURL() {
-	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", "/a/file")
 	_, err := sqs.New(
 		sqs.WithUrl("-"),
 	)
@@ -76,18 +74,19 @@ func (suite *SQSTestSuite) TestNewWithAClient() {
 }
 
 func (suite *SQSTestSuite) TestNewAutoTestConnectionSuccess() {
+	queueUrl := "aws-sqs-queue-url"
 	suite.sqsMock.
 		EXPECT().
-		GetQueueAttributes(&awssqs.GetQueueAttributesInput{
-			AttributeNames: []*string{aws.String("All")},
-			QueueUrl:       aws.String("aws-sqs-queue-url"),
+		GetQueueAttributes(gomock.Any(), &sqsv2.GetQueueAttributesInput{
+			AttributeNames: []types.QueueAttributeName{types.QueueAttributeNameAll},
+			QueueUrl:       &queueUrl,
 		}).
-		Return(&awssqs.GetQueueAttributesOutput{}, nil)
+		Return(&sqsv2.GetQueueAttributesOutput{}, nil)
 
 	sqsDriver, err := sqs.New(
 		sqs.WithClient(suite.sqsMock),
 		sqs.AutoTestConnection(),
-		sqs.WithUrl("aws-sqs-queue-url"),
+		sqs.WithUrl(queueUrl),
 	)
 
 	suite.Nil(err)
@@ -95,18 +94,19 @@ func (suite *SQSTestSuite) TestNewAutoTestConnectionSuccess() {
 }
 
 func (suite *SQSTestSuite) TestNewAutoTestConnectionFail() {
+	queueUrl := "aws-sqs-queue-url"
 	suite.sqsMock.
 		EXPECT().
-		GetQueueAttributes(&awssqs.GetQueueAttributesInput{
-			AttributeNames: []*string{aws.String("All")},
-			QueueUrl:       aws.String("aws-sqs-queue-url"),
+		GetQueueAttributes(gomock.Any(), &sqsv2.GetQueueAttributesInput{
+			AttributeNames: []types.QueueAttributeName{types.QueueAttributeNameAll},
+			QueueUrl:       &queueUrl,
 		}).
 		Return(nil, errors.New("error calling aws"))
 
 	sqsDriver, err := sqs.New(
 		sqs.WithClient(suite.sqsMock),
 		sqs.AutoTestConnection(),
-		sqs.WithUrl("aws-sqs-queue-url"),
+		sqs.WithUrl(queueUrl),
 	)
 
 	suite.NotNil(err)
@@ -114,20 +114,21 @@ func (suite *SQSTestSuite) TestNewAutoTestConnectionFail() {
 }
 
 func (suite *SQSTestSuite) TestEnqueueSuccess() {
+	testQueue := "test-queue"
 	suite.sqsMock.EXPECT().
-		SendMessage(&awssqs.SendMessageInput{
+		SendMessage(gomock.Any(), &sqsv2.SendMessageInput{
 			MessageBody:            aws.String("test message"),
-			QueueUrl:               aws.String("test-queue"),
-			DelaySeconds:           aws.Int64(1),
+			QueueUrl:               &testQueue,
+			DelaySeconds:           1,
 			MessageDeduplicationId: aws.String("dedup-id-1"),
 			MessageGroupId:         aws.String("group-id-1"),
-			MessageAttributes: map[string]*awssqs.MessageAttributeValue{
+			MessageAttributes: map[string]types.MessageAttributeValue{
 				"tenant": {
 					DataType:    aws.String("String"),
 					StringValue: aws.String("tenant-1"),
 				},
 			},
-			MessageSystemAttributes: map[string]*awssqs.MessageSystemAttributeValue{
+			MessageSystemAttributes: map[string]types.MessageSystemAttributeValue{
 				"request-id": {
 					DataType:    aws.String("String"),
 					StringValue: aws.String("12345"),
@@ -141,18 +142,18 @@ func (suite *SQSTestSuite) TestEnqueueSuccess() {
 	))
 
 	err := sqsDriver.Enqueue(
-		"test-queue",
+		testQueue,
 		[]byte("test message"),
 		sqs.WithEnqueueDelaySeconds(1),
 		sqs.WithEnqueueMessageGroupId("group-id-1"),
 		sqs.WithEnqueueMessageDeduplicationId("dedup-id-1"),
-		sqs.WithEnqueueMessageAttributes(map[string]*awssqs.MessageAttributeValue{
+		sqs.WithEnqueueMessageAttributes(map[string]types.MessageAttributeValue{
 			"tenant": {
 				DataType:    aws.String("String"),
 				StringValue: aws.String("tenant-1"),
 			},
 		}),
-		sqs.WithEnqueueMessageSystemAttributes(map[string]*awssqs.MessageSystemAttributeValue{
+		sqs.WithEnqueueMessageSystemAttributes(map[string]types.MessageSystemAttributeValue{
 			"request-id": {
 				DataType:    aws.String("String"),
 				StringValue: aws.String("12345"),
@@ -164,18 +165,19 @@ func (suite *SQSTestSuite) TestEnqueueSuccess() {
 }
 
 func (suite *SQSTestSuite) TestConsumeSuccess() {
+	testQueue := "test-queue"
 	suite.sqsMock.EXPECT().
-		ReceiveMessage(&awssqs.ReceiveMessageInput{
-			MaxNumberOfMessages:         aws.Int64(9),
-			MessageAttributeNames:       []*string{aws.String("All")},
-			MessageSystemAttributeNames: []*string{aws.String("All")},
-			QueueUrl:                    aws.String("test-queue"),
+		ReceiveMessage(gomock.Any(), &sqsv2.ReceiveMessageInput{
+			MaxNumberOfMessages:         9,
+			MessageAttributeNames:       []string{"All"},
+			MessageSystemAttributeNames: []types.MessageSystemAttributeName{types.MessageSystemAttributeNameAll},
+			QueueUrl:                    &testQueue,
 			ReceiveRequestAttemptId:     aws.String("attempt-1"),
-			VisibilityTimeout:           aws.Int64(2),
-			WaitTimeSeconds:             aws.Int64(1),
+			VisibilityTimeout:           2,
+			WaitTimeSeconds:             1,
 		}).
-		Return(&awssqs.ReceiveMessageOutput{
-			Messages: []*awssqs.Message{
+		Return(&sqsv2.ReceiveMessageOutput{
+			Messages: []types.Message{
 				{Body: aws.String(`{"id": 1}`), ReceiptHandle: aws.String("1")},
 				{Body: aws.String(`{"id": 2}`), ReceiptHandle: aws.String("1")},
 				{Body: aws.String(`{"id": 3}`), ReceiptHandle: aws.String("1")},
@@ -187,7 +189,7 @@ func (suite *SQSTestSuite) TestConsumeSuccess() {
 	))
 
 	ctrl, err := sqsDriver.Consume(
-		"test-queue",
+		testQueue,
 		sqs.WithConsumeWaitTimeSeconds(1),
 		sqs.WithConsumeVisibilityTimeout(2),
 		sqs.WithConsumeRequestAttemptId("attempt-1"),
@@ -229,7 +231,7 @@ func (suite *SQSTestSuite) TestConsumeSuccess() {
 func (suite *SQSTestSuite) TestEnqueueFail() {
 	testQueue := "test-queue"
 	suite.sqsMock.EXPECT().
-		SendMessage(&awssqs.SendMessageInput{
+		SendMessage(gomock.Any(), &sqsv2.SendMessageInput{
 			MessageBody: aws.String("test message"),
 			QueueUrl:    &testQueue,
 		}).
