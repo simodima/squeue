@@ -2,6 +2,7 @@ package sqs
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 type MyEvent struct {
@@ -10,12 +11,16 @@ type MyEvent struct {
 
 func (e *MyEvent) UnmarshalJSON(data []byte) error {
 	var raw map[string]any
-	err := json.Unmarshal(data, &raw)
-	if err != nil {
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 
-	e.Name = raw["name"].(string)
+	name, ok := raw["name"].(string)
+	if !ok {
+		return fmt.Errorf("missing or invalid field: name")
+	}
+
+	e.Name = name
 
 	return nil
 }
