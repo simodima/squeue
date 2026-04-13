@@ -34,10 +34,8 @@ linters-settings:
     simplify: true
 
   govet:
+    # Enables all analyzers, including 'shadow'
     enable-all: true
-    enable:
-      # Explicitly enable shadow instead of using the deprecated check-shadowing
-      - shadow
     disable:
       # Do not check field memory alignment because in most cases the performance gain is not worth the headache
       - fieldalignment
