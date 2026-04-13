@@ -1,7 +1,7 @@
 # options for analysis running
 run:
   # timeout for analysis, e.g. 30s, 5m, default is 1m
-  deadline: 2m
+  timeout: 2m
 
 issues:
   # Only report issues for changes since master
@@ -10,7 +10,8 @@ issues:
 # output configuration options
 output:
   # colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
 
 linters-settings:
   errcheck:
@@ -32,14 +33,11 @@ linters-settings:
     # simplify code: gofmt with `-s` option, true by default
     simplify: true
 
-  golint:
-    # minimal confidence for issues, default is 0.8
-    min-confidence: 0.8
-
   govet:
-    # report about shadowed variables
-    check-shadowing: true
     enable-all: true
+    enable:
+      # Explicitly enable shadow instead of using the deprecated check-shadowing
+      - shadow
     disable:
       # Do not check field memory alignment because in most cases the performance gain is not worth the headache
       - fieldalignment
