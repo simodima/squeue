@@ -1,7 +1,6 @@
 package sqs
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -37,12 +36,7 @@ func New(options ...Option) (*Driver, error) {
 	}
 
 	if driver.sqsClient == nil {
-		clientCredentials, err := getCredentials()
-		if err != nil {
-			return nil, err
-		}
-
-		client, err := createClient(driver.url, driver.region, clientCredentials)
+		client, err := createClient(driver.url, driver.region, getCredentials())
 		if err != nil {
 			return nil, err
 		}
@@ -59,16 +53,18 @@ func New(options ...Option) (*Driver, error) {
 	return driver, nil
 }
 
-func getCredentials() (*credentials.Credentials, error) {
+// getCredentials returns explicit credentials when the legacy env vars are set,
+// or nil to fall through to the AWS SDK default credential chain (which supports
+// ECS/Pod Identity, instance profiles, env vars, and shared credentials files).
+func getCredentials() *credentials.Credentials {
 	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") != "" {
-		return credentials.NewSharedCredentials("", ""), nil
-	} else if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
-		return credentials.NewEnvCredentials(), nil
+		return credentials.NewSharedCredentials("", "")
 	}
-
-	return nil, errors.New(
-		"missing AWS_SHARED_CREDENTIALS_FILE and AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY env vars",
-	)
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		return credentials.NewEnvCredentials()
+	}
+	// nil tells the SDK to use its built-in default chain, including Pod Identity.
+	return nil
 }
 
 func createClient(queueUrl string, region string, clientCredentials *credentials.Credentials) (*sqs.SQS, error) {

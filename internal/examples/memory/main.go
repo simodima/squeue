@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -18,12 +19,16 @@ type myMessage struct {
 
 func (e *myMessage) UnmarshalJSON(data []byte) error {
 	var raw map[string]any
-	err := json.Unmarshal(data, &raw)
-	if err != nil {
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 
-	e.name = raw["name"].(string)
+	name, ok := raw["name"].(string)
+	if !ok {
+		return fmt.Errorf("missing or invalid field: name")
+	}
+
+	e.name = name
 
 	return nil
 }
